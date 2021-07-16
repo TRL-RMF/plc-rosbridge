@@ -9,6 +9,16 @@
 
 plc_modbus_node::roboteq_sensors speed;
 
+void reg_clbk(const std_msgs::UInt16MultiArray::ConstPtr &regs_data) {
+  for (int i = 0; i < regs_data->data.size(); i++) {
+    ROS_INFO("regs %d: %u", i, regs_data->data.at(i));
+  }
+  // data conversion and writing to speed msg
+  speed.right_speed = (((uint16_t)regs_data->data.at(0) << 16)| (uint16_t)regs_data->data.at(1));
+    
+}
+
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "talker");
@@ -18,7 +28,7 @@ int main(int argc, char **argv)
   
   // subsciber node that subscribes from motor_control topic
   ros::Subscriber regs_read;
-  regs_read = node.subscribe<std_msgs::UInt16MultiArray>("motor_control", 100);
+  regs_read = node.subscribe<std_msgs::UInt16MultiArray>("motor_control", 100, reg_clbk);
   
   // publisher node that publishes to modbus/reg_write topic
   ros::Publisher regs_write;
@@ -30,58 +40,10 @@ int main(int argc, char **argv)
   
   while(ros::ok()){
     regs_write.publish(speed);
-    
     ros::spinOnce();
     loop_rate.sleep();
     
   }   
-
-
-
-  /**
-   * A count of how many messages we have sent. This is used to create
-   * a unique string for each message.
-   */
-// %Tag(ROS_OK)%
-  int count = 0;
-  while (ros::ok())
-  {
-// %EndTag(ROS_OK)%
-    /**
-     * This is a message object. You stuff it with data, and then publish it.
-     */
-// %Tag(FILL_MESSAGE)%
-    std_msgs::String msg;
-
-    std::stringstream ss;
-    ss << "hello world " << count;
-    msg.data = ss.str();
-// %EndTag(FILL_MESSAGE)%
-
-// %Tag(ROSCONSOLE)%
-    ROS_INFO("%s", msg.data.c_str());
-// %EndTag(ROSCONSOLE)%
-
-    /**
-     * The publish() function is how you send messages. The parameter
-     * is the message object. The type of this object must agree with the type
-     * given as a template parameter to the advertise<>() call, as was done
-     * in the constructor above.
-     */
-// %Tag(PUBLISH)%
-    chatter_pub.publish(msg);
-// %EndTag(PUBLISH)%
-
-// %Tag(SPINONCE)%
-    ros::spinOnce();
-// %EndTag(SPINONCE)%
-
-// %Tag(RATE_SLEEP)%
-    loop_rate.sleep();
-// %EndTag(RATE_SLEEP)%
-    ++count;
-  }
-
 
   return 0;
 }

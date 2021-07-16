@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub_reg = n.subscribe("modbus/regs_read", 100, reg_clbk);
   ros::Subscriber sub_coil = n.subscribe("modbus/coils_read", 100, coil_clbk);
   ros::Publisher pub_roboteq_sensors = n.advertise<plc_modbus_node::roboteq_sensors>("roboteq_sensors/encoders", 100);
-  ros::Publisher pub_roboteq_sensors = n.advertise<plc_modbus_node::roboteq_sensors>("roboteq_sensors/encoders", 100);
+  // ros::Publisher pub_roboteq_sensors = n.advertise<plc_modbus_node::roboteq_sensors>("roboteq_sensors/encoders", 100);
   
   ros::Rate loop_rate(10);
 
