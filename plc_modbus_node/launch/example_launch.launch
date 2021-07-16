@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="plc_modbus_node" type="ros_plc_modbus" name="plc_modbus_node" output="screen">
+        <param name="ip" value="169.254.175.9"/>
+        <rosparam param="coils_addr">[32768,32769,32770]</rosparam>
+        <rosparam param="regs_addr">[32768,32769,32770,32771,32772,32773,32774,32775,32777,32779,32781]</rosparam>
+    </node> 
+
+    <node pkg="plc_modbus_node" type="ros_plc_modbus" name="roboteq_speed_node" output="screen">
+        <param name="ip" value="169.254.175.9"/>
+        <rosparam param="coils_addr">[32768,32769,32770]</rosparam>
+        <rosparam param="regs_addr">[32768,32769,32770,32771]</rosparam>
+    </node> 
+
+    <node pkg="plc_modbus_node" type="ros_plc_modbus" name="roboteq_sensor_node" output="screen">
+        <param name="ip" value="169.254.175.9"/>
+        <rosparam param="coils_addr">[32768,32769,32770]</rosparam>
+        <rosparam param="regs_addr">[32772,32773,32774,32775,32777,32779,32781]</rosparam>
+    </node>
+</launch>
+
+<!-- addr starts from 32768 -->
+<!-- (32768,32769): speed left, (32770,32771): speed right,  (32772,32773): Encoder left,(32774,32775): Encoder right, (32777): Amps left, (32779): Amps right, (32781): Volts battery -->
+
