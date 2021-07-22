@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="plc_modbus_node" type="ros_plc_modbus" name="plc_modbus_node" output="screen">
+        <param name="ip" value="169.254.175.9"/>
+
+        <!-- No spaces to delimit easily -->
+        <param name="types" value="forklift,roboteq,"/>
+
+        <rosparam param="forklift_coils_addr">[32784, 32785]</rosparam>
+        <rosparam param="forklift_regs_write_addr">[32784,32785]</rosparam>
+        <rosparam param="forklift_regs_read_addr">[32786,32787,32788,32789]</rosparam>
+
+        <rosparam param="roboteq_coils_addr">[32768, 32769]</rosparam>
+        <rosparam param="roboteq_regs_write_addr">[32768,32769,32770,32771]</rosparam>
+        <rosparam param="roboteq_regs_read_addr">[32772,32773,32774,32775,32776,32777,32778,32779,32780,32781,32782,32783]</rosparam>
+    </node> 
+</launch>
+
+<!-- addr starts from 32768 -->
+<!-- (32768,32769): speed left, (32770,32771): speed right,  (32772,32773): Encoder left,(32774,32775): Encoder right, (32777): Amps left, (32779): Amps right, (32781): Volts battery -->
+

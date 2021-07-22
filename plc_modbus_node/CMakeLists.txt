@@ -50,6 +50,8 @@ add_message_files(
   my_msg.msg
   roboteq_sensors.msg
   roboteq_speed.msg
+  ByteArray.msg
+  UInt16Array.msg
 )
 
 ## Generate services in the 'srv' folder
