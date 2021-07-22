@@ -67,14 +67,11 @@ plc_modbus_manager::plc_modbus_manager() {
 
     // parse parameters according to the types of components/senders that will communicate with the PLC
     std::string types_str;
-    node.param<std::string>("plc_modbus_node/types", types_str, "forklift,roboteq,");
-    std::string delimiter = ",";
-    size_t pos = 0;
+    node.param<std::string>("plc_modbus_node/types", types_str, "forklift,roboteq");
+    std::istringstream iss(types_str);
     std::string token;
     // tokenize string containing the list of components/senders
-    while ((pos = types_str.find(delimiter)) != std::string::npos) {
-        // tokenize
-        token = types_str.substr(0, pos);
+    while (std::getline(iss, token, ',')) {
         std::cout << token << std::endl;
 
         // parse parameters for the arrays of addresses
@@ -102,9 +99,6 @@ plc_modbus_manager::plc_modbus_manager() {
         coils_addrs.insert(coils_addrs.end(), coils_addr.begin(), coils_addr.end());
         regs_addrs.insert(regs_addrs.end(), regs_write_addr.begin(), regs_write_addr.end());
         regs_addrs.insert(regs_addrs.end(), regs_read_addr.begin(), regs_read_addr.end());
-
-        // erase token to move on to next
-        types_str.erase(0, pos + delimiter.length());
     }
 
     // declare pub/sub topics
@@ -120,7 +114,7 @@ plc_modbus_manager::plc_modbus_manager() {
     node.param("plc_modbus_node/port", port, 502);
     node.param("plc_modbus_node/spin_rate",spin_rate,30);
 
-    ROS_INFO("NOTE: SKIPPED CONNECTING TO MODBUS DEVICE FOR SOFTWARE-ONLY TESTING; UNCOMMENT BELOW FOR ACTUAL USE");
+    ROS_INFO("NOTE: SKIPPED CONNECTING TO MODBUS DEVICE FOR SOFTWARE-ONLY TESTING; UNCOMMENT IT FOR ACTUAL USE");
     /*ROS_INFO("Connecting to modbus device on %s/%d", ip_address.c_str(), port);
     plc = modbus_new_tcp(ip_address.c_str(), port);
     if (plc == NULL) {
@@ -140,6 +134,9 @@ plc_modbus_manager::plc_modbus_manager() {
     // and to regularly publish the data in the PLC registers/coils
     ros::Rate loop_rate(spin_rate);
     while (ros::ok()) {
+        ros::spinOnce();
+        loop_rate.sleep();
+        continue;
         // clear data to read reg/coil values again
         regs_val.data.clear();
         coils_val.data.clear();

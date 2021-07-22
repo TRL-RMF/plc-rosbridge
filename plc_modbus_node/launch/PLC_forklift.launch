@@ -4,7 +4,7 @@
         <param name="ip" value="169.254.175.9"/>
 
         <!-- No spaces to delimit easily -->
-        <param name="types" value="forklift,roboteq,"/>
+        <param name="types" value="forklift,roboteq"/>
 
         <rosparam param="forklift_coils_addr">[32784, 32785]</rosparam>
         <rosparam param="forklift_regs_write_addr">[32784,32785]</rosparam>
