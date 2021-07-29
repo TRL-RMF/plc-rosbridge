@@ -1,12 +1,20 @@
 //
 // Created by Brad Bazemore on 10/29/15.
+// Modified for multiple nodes
 //
 #include <ros/ros.h>
 #include <std_msgs/UInt16MultiArray.h>
 #include <std_msgs/ByteMultiArray.h>
 #include "plc_modbus_node/UInt16Array.h"
 #include "plc_modbus_node/ByteArray.h"
+
+//#define DEBUG
+
+#ifdef DEBUG
+#include "test_modbus/modbus.h"
+#else
 #include <modbus/modbus.h>
+#endif
 
 struct plc_modbus_addr {
     std::vector<int> coils_addr;   // coil addresses
@@ -44,15 +52,19 @@ private:
     ros::Publisher coils_read;
     ros::Subscriber coils_write;
 
-    std::vector<int> coils_addrs;   // coil addresses
     std::vector<int> regs_addrs;  // register addresses
+    std::vector<int> coils_addrs;   // coil addresses
 
     std_msgs::UInt16MultiArray regs_val;
     std_msgs::ByteMultiArray coils_val;
 
     std::map<std::string, plc_modbus_addr> plc_addresses;
 
+#ifdef DEBUG
+    modbus *plc;
+#else
     modbus_t *plc;
+#endif
 
     std::string ip_address;
     int port;
@@ -96,9 +108,9 @@ plc_modbus_manager::plc_modbus_manager() {
         // add to map
         plc_addresses.emplace(token, plc_modbus_addr(coils_addr, regs_write_addr, regs_read_addr));
         // add to lists
-        coils_addrs.insert(coils_addrs.end(), coils_addr.begin(), coils_addr.end());
         regs_addrs.insert(regs_addrs.end(), regs_write_addr.begin(), regs_write_addr.end());
         regs_addrs.insert(regs_addrs.end(), regs_read_addr.begin(), regs_read_addr.end());
+        coils_addrs.insert(coils_addrs.end(), coils_addr.begin(), coils_addr.end());
     }
 
     // declare pub/sub topics
@@ -114,8 +126,11 @@ plc_modbus_manager::plc_modbus_manager() {
     node.param("plc_modbus_node/port", port, 502);
     node.param("plc_modbus_node/spin_rate",spin_rate,30);
 
-    ROS_INFO("NOTE: SKIPPED CONNECTING TO MODBUS DEVICE FOR SOFTWARE-ONLY TESTING; UNCOMMENT IT FOR ACTUAL USE");
-    /*ROS_INFO("Connecting to modbus device on %s/%d", ip_address.c_str(), port);
+#ifdef DEBUG
+    ROS_INFO("NOTE: SKIPPED CONNECTING TO MODBUS DEVICE FOR SOFTWARE-ONLY TESTING; TURN OFF DEBUG FOR ACTUAL USE");
+    plc = new modbus(regs_addrs, coils_addrs);
+#else
+    ROS_INFO("Connecting to modbus device on %s/%d", ip_address.c_str(), port);
     plc = modbus_new_tcp(ip_address.c_str(), port);
     if (plc == NULL) {
         ROS_FATAL("Unable to allocate libmodbus context\n");
@@ -128,15 +143,13 @@ plc_modbus_manager::plc_modbus_manager() {
         return;
     } else {
         ROS_INFO("Connection to modbus device established");
-    }*/
+    }
+#endif
 
     // keep looping to prevent ros node from exiting
     // and to regularly publish the data in the PLC registers/coils
     ros::Rate loop_rate(spin_rate);
     while (ros::ok()) {
-        ros::spinOnce();
-        loop_rate.sleep();
-        continue;
         // clear data to read reg/coil values again
         regs_val.data.clear();
         coils_val.data.clear();
@@ -179,8 +192,12 @@ plc_modbus_manager::plc_modbus_manager() {
         loop_rate.sleep();
     }
 
+#ifdef DEBUG
+    delete plc;
+#else
     modbus_close(plc);
     modbus_free(plc);
+#endif
     return;
 }
 
@@ -190,8 +207,8 @@ void plc_modbus_manager::regs_callBack(const plc_modbus_node::UInt16Array::Const
     std::map<std::string, plc_modbus_addr>::iterator it;
     for (it = plc_addresses.begin(); it != plc_addresses.end(); ++it) {
         // find the addresses that corresponds to the node that sent it
-        if (regs_data->name.compare(it->first)) {   // key found
-                // check that length of regs addresses to write to is the same
+        if (regs_data->name.compare(it->first) == 0) {   // key found
+            // check that length of regs addresses to write to is the same
             if (regs_data->data.size() != it->second.regs_write_addr.size()) {
                 ROS_ERROR("%d registers to write but only %d given!", it->second.regs_write_addr.size(), regs_data->data.size());
                 return;
@@ -220,9 +237,9 @@ void plc_modbus_manager::coils_callBack(const plc_modbus_node::ByteArray::ConstP
     std::map<std::string, plc_modbus_addr>::iterator it;
     for (it = plc_addresses.begin(); it != plc_addresses.end(); ++it) {
         // find the plc addresses that corresponds to the node that sent it
-        if (coils_data->name.compare(it->first)) {   // key found
-                // check that length of coils addresses to write to is the same
-                if (coils_data->data.size() != it->second.coils_addr.size()) {
+        if (coils_data->name.compare(it->first) == 0) {   // key found
+            // check that length of coils addresses to write to is the same
+            if (coils_data->data.size() != it->second.coils_addr.size()) {
                 ROS_ERROR("%d coils to write but %d given!", it->second.coils_addr.size(), coils_data->data.size());
                 return;
             }

@@ -135,8 +135,6 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(ros_plc_modbus src/ros_plc_modbus.cpp)
-add_executable(my_subscriber src/my_subscriber.cpp)
-add_executable(my_publisher src/my_publisher.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -148,8 +146,6 @@ add_executable(my_publisher src/my_publisher.cpp)
    modbus
  )
 
-target_link_libraries(my_subscriber ${catkin_LIBRARIES})
-target_link_libraries(my_publisher ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############
