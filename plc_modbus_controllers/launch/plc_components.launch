@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="plc_modbus_controllers" type="main_node" name="main_node" output="screen" />
+    <node pkg="plc_modbus_controllers" type="forklift_node" name="forklift_node" output="screen" />
+</launch>
