@@ -1,2 +1,0 @@
-int32_t right_speed
-int32_t left_speed

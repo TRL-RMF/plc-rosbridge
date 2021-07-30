@@ -47,10 +47,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  my_msg.msg
+  #my_msg.msg
   roboteq_sensors.msg
-  roboteq_speed.msg
+  forklift_sensors.msg
+  main_controller.msg
   ByteArray.msg
+  #MultiByteArray.msg
   UInt16Array.msg
 )
 
@@ -135,6 +137,7 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(ros_plc_modbus src/ros_plc_modbus.cpp)
+add_executable(plc_read_translator_node src/plc_read_translator_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -145,6 +148,9 @@ add_executable(ros_plc_modbus src/ros_plc_modbus.cpp)
    ${catkin_LIBRARIES}
    modbus
  )
+ target_link_libraries(plc_read_translator_node
+ ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##

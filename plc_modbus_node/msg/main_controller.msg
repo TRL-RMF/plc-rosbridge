@@ -1,0 +1,2 @@
+bool heartbeat
+bool estop_status

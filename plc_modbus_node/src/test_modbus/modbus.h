@@ -12,11 +12,11 @@ public:
     modbus(const std::vector<int>& regs_addrs, const std::vector<int>& coils_addrs) {
         // initialize regs addresses
         for (int i = 0; i < regs_addrs.size(); ++i) {
-            regs[regs_addrs[i]] = 5;
+            regs[regs_addrs[i]] = 0;
         }
         // initialize coils addresses
         for (int i = 0; i < coils_addrs.size(); ++i) {
-            coils[coils_addrs[i]] = 1;
+            coils[coils_addrs[i]] = 0;
         }
     }
 

@@ -1,0 +1,9 @@
+uint32 speed_left
+uint32 speed_right
+uint32 encoder_left
+uint32 encoder_right
+uint32 amps_left 
+uint32 amps_right
+uint32 volts_batt
+uint32 refresh_rate
+uint32 time_elapsed
