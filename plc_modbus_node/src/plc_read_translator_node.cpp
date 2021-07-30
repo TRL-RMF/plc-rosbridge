@@ -6,8 +6,8 @@
 #include <std_msgs/UInt16MultiArray.h>
 #include <std_msgs/ByteMultiArray.h>
 #include <modbus/modbus.h>
-#include "plc_modbus_node/roboteq_sensors.h"
-#include "plc_modbus_node/forklift_sensors.h"
+#include "plc_modbus_node/roboteq_msg.h"
+#include "plc_modbus_node/forklift_msg.h"
 
 plc_modbus_node::roboteq_sensors rob_sensors;
 plc_modbus_node::forklift_sensors fl_sensors;
