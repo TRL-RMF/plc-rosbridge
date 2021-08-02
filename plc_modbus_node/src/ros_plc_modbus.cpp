@@ -10,7 +10,7 @@
 #include "plc_modbus_node/ByteArray.h"
 #include "plc_modbus_node/MultiByteArray.h"
 
-#define DEBUG   // Comment this for actual PLC communication; Uncomment for mock register/coil map
+//#define DEBUG   // Comment this for actual PLC communication; Uncomment for mock register/coil map
 
 #ifdef DEBUG
 #include "test_modbus/modbus.h"
@@ -160,7 +160,7 @@ plc_modbus_manager::plc_modbus_manager() {
         // clear data to read reg/coil values again
         coils_pub_data.arrays.clear();
         regs_pub_data.arrays.clear();
-        
+
         std::map<std::string, plc_modbus_addr>::iterator it;
         for (it = plc_addresses.begin(); it != plc_addresses.end(); ++it) {
             plc_modbus_node::ByteArray coils_data;
