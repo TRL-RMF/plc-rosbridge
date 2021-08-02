@@ -10,6 +10,8 @@
 #include "plc_modbus_node/forklift_sensors.h"
 #include "plc_modbus_node/main_controller.h"
 
+#include <bitset>
+
 plc_modbus_node::roboteq_sensors rob_sensors;
 plc_modbus_node::forklift_sensors fl_sensors;
 plc_modbus_node::main_controller main_controller;
@@ -19,7 +21,9 @@ plc_modbus_node::main_controller main_controller;
 bool heartbeat(0), estop_status(0);
 
 // RoboteQ
-int32_t speed_left(0), speed_right(0), encoder_left(0), encoder_right(0), amps_left(0), amps_right(0), volts_batt(0);
+int32_t speed_left(0), speed_right(0), encoder_left(0), encoder_right(0);
+float amps_left(0), amps_right(0), volts_batt(0);
+std::string fault_flag("");
 uint16_t refresh_rate(0), time_elapsed(0);
 
 // Forklift
@@ -37,11 +41,13 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
       speed_right = (((uint16_t)regs_data->arrays[i].data.at(2) << 16)| (uint16_t)regs_data->arrays[i].data.at(3));
       encoder_left = (((uint16_t)regs_data->arrays[i].data.at(4) << 16)| (uint16_t)regs_data->arrays[i].data.at(5));
       encoder_right = (((uint16_t)regs_data->arrays[i].data.at(6) << 16)| (uint16_t)regs_data->arrays[i].data.at(7));
-      amps_left = regs_data->arrays[i].data.at(9);
-      amps_right = regs_data->arrays[i].data.at(11);
-      volts_batt = regs_data->arrays[i].data.at(12);
-      refresh_rate = regs_data->arrays[i].data.at(13);
-      time_elapsed = regs_data->arrays[i].data.at(14);
+      amps_left = (float)regs_data->arrays[i].data.at(8) / 10.0f;
+      amps_right = (float)regs_data->arrays[i].data.at(9) / 10.0f;
+      volts_batt = (float)regs_data->arrays[i].data.at(10) / 10.0f;
+      int fault_flags = regs_data->arrays[i].data.at(11);
+      fault_flag = std::bitset<16>(fault_flags).to_string();
+      refresh_rate = regs_data->arrays[i].data.at(14);
+      time_elapsed = regs_data->arrays[i].data.at(15);
     }
     // Forklift
     else if (regs_data->arrays[i].name.compare("forklift") == 0) {
@@ -50,8 +56,8 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
       ir_dist_left = regs_data->arrays[i].data.at(2);
       ir_dist_right = regs_data->arrays[i].data.at(3);
 
-      int angle2 = (regs_data->arrays[i].data.at(5) << 16) | regs_data->arrays[i].data.at(4);
-      memcpy(&angle, &angle2, sizeof(float));
+      int angle_temp = (regs_data->arrays[i].data.at(5) << 16) | regs_data->arrays[i].data.at(4);
+      memcpy(&angle, &angle_temp, sizeof(float));
     }
   }
 }
@@ -88,6 +94,7 @@ void initialiseMessage(){
   rob_sensors.amps_left    = amps_left;
   rob_sensors.amps_right   = amps_right  ;
   rob_sensors.volts_batt    = volts_batt ;
+  rob_sensors.fault_flag    = fault_flag ;
   rob_sensors.refresh_rate  = refresh_rate;
   rob_sensors.time_elapsed  = time_elapsed ;
   
