@@ -1,0 +1,6 @@
+uint16 xnergy_runtime_voltage 
+uint16 xnergy_runtime_current
+uint16 rcu_temp
+uint16 batt_output_current
+uint16 battery_volt
+uint16 error_code

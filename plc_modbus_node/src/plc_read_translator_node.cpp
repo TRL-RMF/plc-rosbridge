@@ -1,6 +1,6 @@
 // README: This node subscribes to modbus/coils&regs read
-// and plublishes to the forklift_sensors node and the roboteq_sensors node 
-
+// and publishes to the forklift_sensors node, roboteq_sensors node, main_controller node
+// and xnergy node
 
 #include <ros/ros.h>
 #include <plc_modbus_node/MultiUInt16Array.h>
@@ -9,11 +9,13 @@
 #include "plc_modbus_node/roboteq_sensors.h"
 #include "plc_modbus_node/forklift_sensors.h"
 #include "plc_modbus_node/main_controller.h"
+#include "plc_modbus_node/xnergy_sensors.h"
 
 #include <bitset>
 
 plc_modbus_node::roboteq_sensors rob_sensors;
 plc_modbus_node::forklift_sensors fl_sensors;
+plc_modbus_node::xnergy_sensors xn_sensors;
 plc_modbus_node::main_controller main_controller;
 
 //Initialising regs/coils variables for the required type needed
@@ -30,6 +32,10 @@ uint16_t refresh_rate(0), time_elapsed(0);
 float angle(0);
 uint16_t lift_cmd(0), ir_cmd(0), ir_dist_left(0), ir_dist_right(0);
 bool mount_status(0), alignment(0), busy_status(0);
+
+// xnergy
+uint16_t xnergy_runtime_voltage(0), xnergy_runtime_current(0), rcu_temp(0), batt_output_current(0);
+uint16_t battery_volt(0), error_code(0);
 
 void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
   // NOTE: regs_data has uint16_t datatype, some need conversion into respective datatypes
@@ -58,6 +64,15 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
 
       int angle_temp = (regs_data->arrays[i].data.at(5) << 16) | regs_data->arrays[i].data.at(4);
       memcpy(&angle, &angle_temp, sizeof(float));
+    }
+    else if (regs_data->arrays[i].name.compare("xnergy") == 0) {
+      xnergy_runtime_voltage = regs_data->data.at(32);
+      xnergy_runtime_current = regs_data->data.at(33);
+      rcu_temp = regs_data->data.at(34);
+      batt_output_current = regs_data->data.at(35);
+      battery_volt = regs_data->data.at(36);
+      error_code = (((uint16_t)regs_data->data.at(37) << 16)| (uint16_t)regs_data->data.at(38));
+
     }
   }
 }
@@ -107,7 +122,15 @@ void initialiseMessage(){
   fl_sensors.mount_status   = mount_status ;
   fl_sensors.alignment     = alignment  ;
   fl_sensors.busy_status  = busy_status;
-           
+
+  // xnergy
+  xn_sensors.xnergy_runtime_voltage = xnergy_runtime_voltage ;
+  xn_sensors.xnergy_runtime_current = xnergy_runtime_current;
+  xn_sensors.rcu_temp = rcu_temp ;
+  xn_sensors.batt_output_current = batt_output_current ;
+  xn_sensors.battery_volt = battery_volt ;
+  xn_sensors.error_code = error_code ;
+             
 }
 
 
@@ -124,6 +147,7 @@ int main(int argc, char **argv)
   // Publish to the respective topics
   ros::Publisher pub_roboteq_sensors = n.advertise<plc_modbus_node::roboteq_sensors>("/modbus/roboteq_sensors", 100);
   ros::Publisher pub_forklift_sensors = n.advertise<plc_modbus_node::forklift_sensors>("/modbus/forklift_sensors", 100);
+  ros::Publisher pub_xnergy_sensors = n.advertise<plc_modbus_node::xnergy_sensors>("/modbus/xnergy_sensors", 100);
   ros::Publisher pub_main_controller = n.advertise<plc_modbus_node::main_controller>("/modbus/main_controller", 100);
   
   ros::Rate loop_rate(10);
@@ -134,6 +158,7 @@ int main(int argc, char **argv)
       
     pub_roboteq_sensors.publish(rob_sensors);
     pub_forklift_sensors.publish(fl_sensors);
+    pub_xnergy_sensors.publish(xn_sensors);
     pub_main_controller.publish(main_controller);
 
     ros::spinOnce();
