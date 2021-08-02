@@ -10,14 +10,11 @@
 #include "plc_modbus_node/ByteArray.h"
 #include "plc_modbus_node/MultiByteArray.h"
 
-//#define DEBUG   // Comment this for actual PLC communication; Uncomment for mock register/coil map
+#include "modbus_wrapper.h"
+//#include "test_modbus/test_modbus.h"
+//#include <modbus/modbus.h>
 
-#ifdef DEBUG
-#include "test_modbus/modbus.h"
-#else
-#include <modbus/modbus.h>
-#endif
-
+// data type for coil/reg addresses for a component
 struct plc_modbus_addr {
     std::vector<int> coils_addr;   // coil addresses
     std::vector<int> regs_write_addr;  // register addresses for writing to
@@ -59,11 +56,9 @@ private:
 
     std::map<std::string, plc_modbus_addr> plc_addresses;
 
-#ifdef DEBUG
-    modbus *plc;
-#else
-    modbus_t *plc;
-#endif
+    bool debug_mode;
+
+    modbus_wrapper *modbus;    // selects mock PLC or actual PLC communcation wrapper
 
     std::string ip_address;
     int port;
@@ -76,16 +71,19 @@ private:
 
 plc_modbus_manager::plc_modbus_manager() {
 
+    // parse debug mode parameter
+    node.param<bool>("plc_modbus_node/debug", debug_mode, true);
+    ROS_INFO(debug_mode ? "true" : "false");
+
     // parse parameters according to the types of components/senders that will communicate with the PLC
     std::string types_str;
     node.param<std::string>("plc_modbus_node/types", types_str, "forklift,roboteq");
     std::istringstream iss(types_str);
     std::string token;
 
-#ifdef DEBUG
+    // for mock tests
     std::vector<int> regs_addrs;  // register addresses
     std::vector<int> coils_addrs;   // coil addresses
-#endif
 
     // tokenize string containing the list of components/senders
     while (std::getline(iss, token, ',')) {
@@ -113,11 +111,12 @@ plc_modbus_manager::plc_modbus_manager() {
         // add to map
         plc_addresses.emplace(token, plc_modbus_addr(coils_addr, regs_write_addr, regs_read_addr));
         // add to lists
-#ifdef DEBUG
+
+        if (debug_mode) {
         regs_addrs.insert(regs_addrs.end(), regs_write_addr.begin(), regs_write_addr.end());
         regs_addrs.insert(regs_addrs.end(), regs_read_addr.begin(), regs_read_addr.end());
         coils_addrs.insert(coils_addrs.end(), coils_addr.begin(), coils_addr.end());
-#endif
+        }
     }
 
     // declare pub/sub topics
@@ -133,25 +132,16 @@ plc_modbus_manager::plc_modbus_manager() {
     node.param("plc_modbus_node/port", port, 502);
     node.param("plc_modbus_node/spin_rate",spin_rate,30);
 
-#ifdef DEBUG
-    ROS_INFO("NOTE: SKIPPED CONNECTING TO MODBUS DEVICE FOR SOFTWARE-ONLY TESTING; TURN OFF DEBUG FOR ACTUAL USE");
-    plc = new modbus(regs_addrs, coils_addrs);
-#else
-    ROS_INFO("Connecting to modbus device on %s/%d", ip_address.c_str(), port);
-    plc = modbus_new_tcp(ip_address.c_str(), port);
-    if (plc == NULL) {
-        ROS_FATAL("Unable to allocate libmodbus context\n");
-        return;
+    if (debug_mode) {
+        // Create mock PLC coils/registers address map
+        ROS_INFO("NOTE: SKIPPED CONNECTING TO MODBUS DEVICE FOR SOFTWARE-ONLY TESTING; TURN OFF DEBUG FOR ACTUAL USE");
+        modbus = new modbus_wrapper(regs_addrs, coils_addrs);
     }
-    if (modbus_connect(plc) == -1) {
-        ROS_FATAL("Failed to connect to modbus device!!!");
-        ROS_FATAL("%s", modbus_strerror(errno));
-        modbus_free(plc);
-        return;
-    } else {
-        ROS_INFO("Connection to modbus device established");
+    else {
+        // Create modbus/tcp connection to PLC
+        ROS_INFO("Connecting to modbus device on %s/%d", ip_address.c_str(), port);
+        modbus = new modbus_wrapper(ip_address.c_str(), port);
     }
-#endif
 
     // keep looping to prevent ros node from exiting
     // and to regularly publish the data in the PLC registers/coils
@@ -171,9 +161,9 @@ plc_modbus_manager::plc_modbus_manager() {
             for (int i = 0; i < it->second.coils_addr.size(); i++) {
                 uint8_t temp[1] = {0};
                 // read value at address
-                if (modbus_read_bits(plc, it->second.coils_addr.at(i), 1, temp) == -1) {  // error reading from coil
+                if (modbus->read_bits(it->second.coils_addr.at(i), 1, temp) == -1) {  // error reading from coil
                     ROS_ERROR("Unable to read coil addr:%d", it->second.coils_addr.at(i));
-                    ROS_ERROR("%s", modbus_strerror(errno));
+                    ROS_ERROR("%s", modbus->strerror());
                 } else {    // read successfuully
                     coils_data.data.push_back(temp[0]);
                 }
@@ -184,9 +174,9 @@ plc_modbus_manager::plc_modbus_manager() {
             for (int i = 0; i < it->second.regs_write_addr.size(); i++) {
                 uint16_t temp[1] = {0};
                 // read value at address
-                if (modbus_read_registers(plc, it->second.regs_write_addr.at(i), 1, temp) == -1) {  // error reading from register
+                if (modbus->read_registers(it->second.regs_write_addr.at(i), 1, temp) == -1) {  // error reading from register
                     ROS_ERROR("Unable to read reg addr:%d", it->second.regs_write_addr.at(i));
-                    ROS_ERROR("%s", modbus_strerror(errno));
+                    ROS_ERROR("%s", modbus->strerror());
                 } else {    // read successfully
                     regs_data.data.push_back(temp[0]);
                 }
@@ -195,9 +185,9 @@ plc_modbus_manager::plc_modbus_manager() {
             for (int i = 0; i < it->second.regs_read_addr.size(); i++) {
                 uint16_t temp[1] = {0};
                 // read value at address
-                if (modbus_read_registers(plc, it->second.regs_read_addr.at(i), 1, temp) == -1) {  // error reading from register
+                if (modbus->read_registers(it->second.regs_read_addr.at(i), 1, temp) == -1) {  // error reading from register
                     ROS_ERROR("Unable to read reg addr:%d", it->second.regs_read_addr.at(i));
-                    ROS_ERROR("%s", modbus_strerror(errno));
+                    ROS_ERROR("%s", modbus->strerror());
                 } else {    // read successfully
                     regs_data.data.push_back(temp[0]);
                 }
@@ -217,13 +207,9 @@ plc_modbus_manager::plc_modbus_manager() {
         ros::spinOnce();
         loop_rate.sleep();
     }
-
-#ifdef DEBUG
-    delete plc;
-#else
-    modbus_close(plc);
-    modbus_free(plc);
-#endif
+    
+    // terminate the connection
+    modbus->close();
     return;
 }
 
@@ -245,9 +231,9 @@ void plc_modbus_manager::regs_callBack(const plc_modbus_node::UInt16Array::Const
                 ROS_DEBUG("regs_out[%d]:%u", i, regs_data->data.at(i));
                 uint16_t temp[1] = {regs_data->data.at(i)};
                 // write value to reg address
-                if (modbus_write_registers(plc, it->second.regs_write_addr.at(i), 1, temp) == -1) { // error writing to reg
+                if (modbus->write_registers(it->second.regs_write_addr.at(i), 1, temp) == -1) { // error writing to reg
                     ROS_ERROR("Modbus reg write failed at addr:%d with value:%u", it->second.regs_write_addr.at(i), regs_data->data.at(i));
-                    ROS_ERROR("%s", modbus_strerror(errno));
+                    ROS_ERROR("%s", modbus->strerror());
                 } else {    // written successfully
                     ROS_INFO("Modbus register write at addr:%d with value:%u", it->second.regs_write_addr.at(i), regs_data->data.at(i));
                 }
@@ -275,9 +261,9 @@ void plc_modbus_manager::coils_callBack(const plc_modbus_node::ByteArray::ConstP
                 ROS_DEBUG("regs_out[%d]:%u", i, coils_data->data.at(i));
                 uint8_t temp[1] = {coils_data->data.at(i)};
                 // write value to coil address
-                if (modbus_write_bits(plc, it->second.coils_addr.at(i), 1, temp) == -1) {   // error writing to coil
+                if (modbus->write_bits(it->second.coils_addr.at(i), 1, temp) == -1) {   // error writing to coil
                     ROS_ERROR("Modbus coil write failed at addr:%d with value:%u", it->second.coils_addr.at(i), coils_data->data.at(i));
-                    ROS_ERROR("%s", modbus_strerror(errno));
+                    ROS_ERROR("%s", modbus->strerror());
                 } else {    // written successfully
                     ROS_INFO("Modbus coil write at addr:%d with value:%u", it->second.coils_addr.at(i), coils_data->data.at(i));
                 }

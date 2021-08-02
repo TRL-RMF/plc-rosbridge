@@ -2,7 +2,7 @@
 <launch>
     <!-- Launch the node for the PLC modbus communication -->
     <node pkg="plc_modbus_node" type="ros_plc_modbus" name="plc_modbus_node" output="screen">
-        <param name="debug" type="bool" value="false" />
+        <param name="debug" type="bool" value="true" />
         <param name="ip" value="192.168.1.5"/>
 
         <!-- No spaces to delimit easily -->
