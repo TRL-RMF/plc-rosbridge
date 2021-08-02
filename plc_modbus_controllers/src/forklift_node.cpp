@@ -6,9 +6,10 @@
 #include <plc_modbus_node/ByteArray.h>
 #include <plc_modbus_node/forklift_sensors.h>
 
+using plc_modbus_node::forklift_sensors;
 
 // Forklift sensor variables
-plc_modbus_node::forklift_sensors fl_sensors;
+forklift_sensors fl_sensors;
 
 ros::Subscriber sensors_read;
 ros::Publisher regs_write;
@@ -27,8 +28,8 @@ bool forklift_up(std_srvs::Empty::Request& request, std_srvs::Empty::Response& r
         // publish the command to /modbus/regs_write once
         plc_modbus_node::UInt16Array data;
         data.name = "forklift";
-        data.data.push_back(1); // Lift Motor Command
-        data.data.push_back(0); // IR Command
+        data.data.push_back(forklift_sensors::CMD_LIFT_UP); // Lift Motor Command
+        data.data.push_back(forklift_sensors::CMD_NO_IR); // IR Command
 
         regs_write.publish(data);
     }
@@ -50,8 +51,8 @@ bool forklift_down(std_srvs::Empty::Request& request, std_srvs::Empty::Response&
         // publish the command to /modbus/regs_write once
         plc_modbus_node::UInt16Array data;
         data.name = "forklift";
-        data.data.push_back(2); // Lift Motor Command
-        data.data.push_back(0); // IR Command
+        data.data.push_back(forklift_sensors::CMD_LIFT_DOWN); // Lift Motor Command
+        data.data.push_back(forklift_sensors::CMD_NO_IR); // IR Command
 
         regs_write.publish(data);
     }
@@ -65,15 +66,15 @@ bool forklift_ir(std_srvs::Empty::Request& request, std_srvs::Empty::Response& r
     // publish the command to /modbus/regs_write once
     plc_modbus_node::UInt16Array data;
     data.name = "forklift";
-    data.data.push_back(0); // Lift Motor Command
-    data.data.push_back(1); // IR Command
+    data.data.push_back(forklift_sensors::CMD_NO_LIFT); // Lift Motor Command
+    data.data.push_back(forklift_sensors::CMD_IR); // IR Command
 
     regs_write.publish(data);
 
     return true;
 }
 
-void sensors_callback(const plc_modbus_node::forklift_sensors::ConstPtr& data){
+void sensors_callback(const forklift_sensors::ConstPtr& data){
     fl_sensors = *data;
     // ROS_INFO_STREAM(fl_sensors);
 }
@@ -84,7 +85,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // subscribe to forklift sensors
-    sensors_read = nh.subscribe<plc_modbus_node::forklift_sensors>("modbus/forklift_sensors", 100, sensors_callback);
+    sensors_read = nh.subscribe<forklift_sensors>("modbus/forklift_sensors", 100, sensors_callback);
     
     regs_write = nh.advertise<plc_modbus_node::UInt16Array>("modbus/regs_write", 100);
 

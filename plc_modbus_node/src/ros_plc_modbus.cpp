@@ -8,7 +8,7 @@
 #include "plc_modbus_node/UInt16Array.h"
 #include "plc_modbus_node/ByteArray.h"
 
-//#define DEBUG
+//#define DEBUG   // Comment this for actual PLC communication; Uncomment for mock register/coil map
 
 #ifdef DEBUG
 #include "test_modbus/modbus.h"

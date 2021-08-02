@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     
         if (!first) {
             byteData.data.clear();
-            byteData.data.push_back(1);
+            byteData.data.push_back(1); // True
             byteData.data.push_back(main_controller.estop_status);
             pub_main_controller.publish(byteData);
         }
