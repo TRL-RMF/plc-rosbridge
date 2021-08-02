@@ -43,10 +43,10 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
   for (int i = 0; i < regs_data->arrays.size(); ++i) {
     // RoboteQ
     if (regs_data->arrays[i].name.compare("roboteq") == 0) {
-      speed_left = (((uint16_t)regs_data->arrays[i].data.at(0) << 16)| (uint16_t)regs_data->arrays[i].data.at(1));
-      speed_right = (((uint16_t)regs_data->arrays[i].data.at(2) << 16)| (uint16_t)regs_data->arrays[i].data.at(3));
-      encoder_left = (((uint16_t)regs_data->arrays[i].data.at(4) << 16)| (uint16_t)regs_data->arrays[i].data.at(5));
-      encoder_right = (((uint16_t)regs_data->arrays[i].data.at(6) << 16)| (uint16_t)regs_data->arrays[i].data.at(7));
+      speed_left = (((uint16_t)regs_data->arrays[i].data.at(1) << 16)| (uint16_t)regs_data->arrays[i].data.at(0));
+      speed_right = (((uint16_t)regs_data->arrays[i].data.at(3) << 16)| (uint16_t)regs_data->arrays[i].data.at(2));
+      encoder_left = (((uint16_t)regs_data->arrays[i].data.at(5) << 16)| (uint16_t)regs_data->arrays[i].data.at(4));
+      encoder_right = (((uint16_t)regs_data->arrays[i].data.at(7) << 16)| (uint16_t)regs_data->arrays[i].data.at(6));
       amps_left = (float)regs_data->arrays[i].data.at(8) / 10.0f;
       amps_right = (float)regs_data->arrays[i].data.at(9) / 10.0f;
       volts_batt = (float)regs_data->arrays[i].data.at(10) / 10.0f;
@@ -71,7 +71,7 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
       rcu_temp = regs_data->arrays[i].data.at(2);
       batt_output_current = regs_data->arrays[i].data.at(3);
       battery_volt = regs_data->arrays[i].data.at(4);
-      error_code = (((uint16_t)regs_data->arrays[i].data.at(5) << 16)| (uint16_t)regs_data->arrays[i].data.at(6));
+      error_code = (((uint16_t)regs_data->arrays[i].data.at(6) << 16)| (uint16_t)regs_data->arrays[i].data.at(5));
 
     }
   }
