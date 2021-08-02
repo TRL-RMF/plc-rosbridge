@@ -47,10 +47,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  #my_msg.msg
   roboteq_sensors.msg
   forklift_sensors.msg
   main_controller.msg
+  xnergy_sensors.msg
   ByteArray.msg
   MultiByteArray.msg
   UInt16Array.msg

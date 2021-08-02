@@ -6,7 +6,7 @@
         <param name="ip" value="192.168.1.5"/>
 
         <!-- No spaces to delimit easily -->
-        <param name="types" value="main,roboteq,forklift"/>
+        <param name="types" value="main,roboteq,forklift,xnergy"/>
 
         <!-- <rosparam param="forklift_coils_addr">[32784, 32785]</rosparam> -->
         <rosparam param="forklift_coils_addr">[32784, 32785, 32786]</rosparam>
@@ -20,6 +20,10 @@
         <rosparam param="main_coils_addr">[32816,32768]</rosparam>
         <rosparam param="main_regs_write_addr">[]</rosparam>
         <rosparam param="main_regs_read_addr">[]</rosparam>
+
+        <rosparam param="xnergy_coils_addr">[32800,32801,32802]</rosparam>
+        <rosparam param="xnergy_regs_write_addr">[]</rosparam>
+        <rosparam param="xnergy_regs_read_addr">[32800,32801,32802,32803,32804,32805,32806]</rosparam>
     </node> 
     <!-- Launch the translator node from data stream to variables -->
     <node pkg="plc_modbus_node" type="plc_read_translator_node" name="plc_read_translator_node" output="screen" />

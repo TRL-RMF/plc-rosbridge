@@ -138,6 +138,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
  add_executable(forklift_node src/forklift_node.cpp)
  add_executable(main_node src/main_node.cpp)
+ add_executable(xnergy_charging_node src/xnergy_charging_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,6 +155,9 @@ include_directories(
    ${catkin_LIBRARIES}
  )
  target_link_libraries(main_node
+   ${catkin_LIBRARIES}
+ )
+ target_link_libraries(xnergy_charging_node
    ${catkin_LIBRARIES}
  )
 

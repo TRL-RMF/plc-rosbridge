@@ -66,12 +66,12 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
       memcpy(&angle, &angle_temp, sizeof(float));
     }
     else if (regs_data->arrays[i].name.compare("xnergy") == 0) {
-      xnergy_runtime_voltage = regs_data->data.at(32);
-      xnergy_runtime_current = regs_data->data.at(33);
-      rcu_temp = regs_data->data.at(34);
-      batt_output_current = regs_data->data.at(35);
-      battery_volt = regs_data->data.at(36);
-      error_code = (((uint16_t)regs_data->data.at(37) << 16)| (uint16_t)regs_data->data.at(38));
+      xnergy_runtime_voltage = regs_data->arrays[i].data.at(0);
+      xnergy_runtime_current = regs_data->arrays[i].data.at(1);
+      rcu_temp = regs_data->arrays[i].data.at(2);
+      batt_output_current = regs_data->arrays[i].data.at(3);
+      battery_volt = regs_data->arrays[i].data.at(4);
+      error_code = (((uint16_t)regs_data->arrays[i].data.at(5) << 16)| (uint16_t)regs_data->arrays[i].data.at(6));
 
     }
   }
