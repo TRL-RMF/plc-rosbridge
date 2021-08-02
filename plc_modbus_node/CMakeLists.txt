@@ -52,8 +52,9 @@ add_message_files(
   forklift_sensors.msg
   main_controller.msg
   ByteArray.msg
-  #MultiByteArray.msg
+  MultiByteArray.msg
   UInt16Array.msg
+  MultiUInt16Array.msg
 )
 
 ## Generate services in the 'srv' folder

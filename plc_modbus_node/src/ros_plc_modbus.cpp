@@ -6,9 +6,11 @@
 #include <std_msgs/UInt16MultiArray.h>
 #include <std_msgs/ByteMultiArray.h>
 #include "plc_modbus_node/UInt16Array.h"
+#include "plc_modbus_node/MultiUInt16Array.h"
 #include "plc_modbus_node/ByteArray.h"
+#include "plc_modbus_node/MultiByteArray.h"
 
-//#define DEBUG   // Comment this for actual PLC communication; Uncomment for mock register/coil map
+#define DEBUG   // Comment this for actual PLC communication; Uncomment for mock register/coil map
 
 #ifdef DEBUG
 #include "test_modbus/modbus.h"
@@ -52,11 +54,8 @@ private:
     ros::Publisher coils_read;
     ros::Subscriber coils_write;
 
-    std::vector<int> regs_addrs;  // register addresses
-    std::vector<int> coils_addrs;   // coil addresses
-
-    std_msgs::UInt16MultiArray regs_val;
-    std_msgs::ByteMultiArray coils_val;
+    plc_modbus_node::MultiByteArray coils_pub_data;
+    plc_modbus_node::MultiUInt16Array regs_pub_data;
 
     std::map<std::string, plc_modbus_addr> plc_addresses;
 
@@ -82,6 +81,12 @@ plc_modbus_manager::plc_modbus_manager() {
     node.param<std::string>("plc_modbus_node/types", types_str, "forklift,roboteq");
     std::istringstream iss(types_str);
     std::string token;
+
+#ifdef DEBUG
+    std::vector<int> regs_addrs;  // register addresses
+    std::vector<int> coils_addrs;   // coil addresses
+#endif
+
     // tokenize string containing the list of components/senders
     while (std::getline(iss, token, ',')) {
         std::cout << token << std::endl;
@@ -108,16 +113,18 @@ plc_modbus_manager::plc_modbus_manager() {
         // add to map
         plc_addresses.emplace(token, plc_modbus_addr(coils_addr, regs_write_addr, regs_read_addr));
         // add to lists
+#ifdef DEBUG
         regs_addrs.insert(regs_addrs.end(), regs_write_addr.begin(), regs_write_addr.end());
         regs_addrs.insert(regs_addrs.end(), regs_read_addr.begin(), regs_read_addr.end());
         coils_addrs.insert(coils_addrs.end(), coils_addr.begin(), coils_addr.end());
+#endif
     }
 
     // declare pub/sub topics
-    regs_read = node.advertise<std_msgs::UInt16MultiArray>("modbus/regs_read", 100);
+    regs_read = node.advertise<plc_modbus_node::MultiUInt16Array>("modbus/regs_read", 100);
     regs_write = node.subscribe<plc_modbus_node::UInt16Array>("modbus/regs_write", 100,
                                                             &plc_modbus_manager::regs_callBack, this);
-    coils_read = node.advertise<std_msgs::ByteMultiArray>("modbus/coils_read", 100);
+    coils_read = node.advertise<plc_modbus_node::MultiByteArray>("modbus/coils_read", 100);
     coils_write = node.subscribe<plc_modbus_node::ByteArray>("modbus/coils_write", 100,
                                                            &plc_modbus_manager::coils_callBack, this);
 
@@ -151,41 +158,60 @@ plc_modbus_manager::plc_modbus_manager() {
     ros::Rate loop_rate(spin_rate);
     while (ros::ok()) {
         // clear data to read reg/coil values again
-        regs_val.data.clear();
-        coils_val.data.clear();
+        coils_pub_data.arrays.clear();
+        regs_pub_data.arrays.clear();
+        
+        std::map<std::string, plc_modbus_addr>::iterator it;
+        for (it = plc_addresses.begin(); it != plc_addresses.end(); ++it) {
+            plc_modbus_node::ByteArray coils_data;
+            plc_modbus_node::UInt16Array regs_data;
 
-        // read values from reg addresses, one value (uint16) at a time
-        for (int i = 0; i < regs_addrs.size(); i++) {
-            uint16_t temp[1] = {0};
-            // read value at address
-            if (modbus_read_registers(plc, regs_addrs.at(i), 1, temp) == -1) {  // error reading from register
-                ROS_ERROR("Unable to read reg addr:%d", regs_addrs.at(i));
-                ROS_ERROR("%s", modbus_strerror(errno));
-            } else {    // read successfully
-                regs_val.data.push_back(temp[0]);
+            coils_data.name = it->first;
+            // append coils data
+            for (int i = 0; i < it->second.coils_addr.size(); i++) {
+                uint8_t temp[1] = {0};
+                // read value at address
+                if (modbus_read_bits(plc, it->second.coils_addr.at(i), 1, temp) == -1) {  // error reading from coil
+                    ROS_ERROR("Unable to read coil addr:%d", it->second.coils_addr.at(i));
+                    ROS_ERROR("%s", modbus_strerror(errno));
+                } else {    // read successfuully
+                    coils_data.data.push_back(temp[0]);
+                }
             }
-        }
-        // publish if there is data available
-        // NOTE: if there is error reading from one address but not others, it will be skipped over in this array
-        if (regs_val.data.size() > 0) {
-            regs_read.publish(regs_val);
-        }
 
-        // read values from coil addresses, one value (byte) at a time
-        for (int i = 0; i < coils_addrs.size(); i++) {
-            uint8_t temp[1] = {0};
-            // read value at address
-            if (modbus_read_bits(plc, coils_addrs.at(i), 1, temp) == -1) {  // error reading from coil
-                ROS_ERROR("Unable to read coil addr:%d", coils_addrs.at(i));
-                ROS_ERROR("%s", modbus_strerror(errno));
-            } else {    // read successfuully
-                coils_val.data.push_back(temp[0]);
+            regs_data.name = it->first;
+            // append reg write data
+            for (int i = 0; i < it->second.regs_write_addr.size(); i++) {
+                uint16_t temp[1] = {0};
+                // read value at address
+                if (modbus_read_registers(plc, it->second.regs_write_addr.at(i), 1, temp) == -1) {  // error reading from register
+                    ROS_ERROR("Unable to read reg addr:%d", it->second.regs_write_addr.at(i));
+                    ROS_ERROR("%s", modbus_strerror(errno));
+                } else {    // read successfully
+                    regs_data.data.push_back(temp[0]);
+                }
             }
+            // append reg read data
+            for (int i = 0; i < it->second.regs_read_addr.size(); i++) {
+                uint16_t temp[1] = {0};
+                // read value at address
+                if (modbus_read_registers(plc, it->second.regs_read_addr.at(i), 1, temp) == -1) {  // error reading from register
+                    ROS_ERROR("Unable to read reg addr:%d", it->second.regs_read_addr.at(i));
+                    ROS_ERROR("%s", modbus_strerror(errno));
+                } else {    // read successfully
+                    regs_data.data.push_back(temp[0]);
+                }
+            }
+            // push
+            coils_pub_data.arrays.push_back(coils_data);
+            regs_pub_data.arrays.push_back(regs_data);
         }
-        // publish if there is data available
-        // NOTE: if there is error reading from one address but not others, it will be skipped over in this array
-        if (coils_val.data.size() > 0) {
-            coils_read.publish(coils_val);
+        // publish
+        if (coils_pub_data.arrays.size() > 0) {
+            coils_read.publish(coils_pub_data);
+        }
+        if (regs_pub_data.arrays.size() > 0) {
+            regs_read.publish(regs_pub_data);
         }
 
         ros::spinOnce();
