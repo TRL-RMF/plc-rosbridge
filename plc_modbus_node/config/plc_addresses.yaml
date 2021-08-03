@@ -1,0 +1,26 @@
+# reference: https://answers.ros.org/question/291660/get-yaml-list-of-dictionary-items-with-rosparam-in-c/
+plc_addrs:
+- name: forklift
+  coils_addr: [32784, 32785, 32786]
+  regs_read_addr: [32786, 32787, 32788, 32789]
+  regs_write_addr: [32784, 32785]
+
+- name: main
+  coils_addr: [32816, 32768]
+  regs_read_addr: []
+  regs_write_addr: []
+
+- name: roboteq
+  coils_addr: []
+  regs_read_addr: [32772, 32773, 32774, 32775, 32776, 32777, 32778, 32779, 32780, 32781, 32782, 32783]
+  regs_write_addr: [32768, 32769, 32770, 32771]
+
+- name: xnergy
+  coils_addr: [32800, 32801, 32802]
+  regs_read_addr: [32800, 32801, 32802, 32803, 32804, 32805, 32806]
+  regs_write_addr: []
+
+
+# RoboteQ: addr starts from 32768
+# (32768,32769): speed left, (32770,32771): speed right,  (32772,32773): Encoder left,(32774,32775): Encoder right, (32777): Amps left, (32779): Amps right, (32781): Volts battery
+

@@ -71,51 +71,56 @@ private:
 
 plc_modbus_manager::plc_modbus_manager() {
 
-    // parse debug mode parameter
-    node.param<bool>("plc_modbus_node/debug", debug_mode, true);
-    ROS_INFO(debug_mode ? "true" : "false");
-
-    // parse parameters according to the types of components/senders that will communicate with the PLC
-    std::string types_str;
-    node.param<std::string>("plc_modbus_node/types", types_str, "forklift,roboteq");
-    std::istringstream iss(types_str);
-    std::string token;
-
-    // for mock tests
+    // for mock testing only
     std::vector<int> regs_addrs;  // register addresses
     std::vector<int> coils_addrs;   // coil addresses
 
-    // tokenize string containing the list of components/senders
-    while (std::getline(iss, token, ',')) {
-        std::cout << token << std::endl;
+    // parse debug mode parameter
+    node.param<bool>("plc_modbus_node/debug", debug_mode, true);
+    ROS_INFO("Debug mode: %s", debug_mode ? "true" : "false");
 
-        // parse parameters for the arrays of addresses
+    // parse name of addresses list parameter from the yaml file
+    std::string rosparam_plcaddrs;  // name of the rosparam for plc addresses loaded from yaml file
+    node.param<std::string>("plc_modbus_node/addr_param_name", rosparam_plcaddrs, "plc_modbus_node/plc_addrs");
+    // parse the list of addresses of the components/senders that will communicate with the PLC
+    XmlRpc::XmlRpcValue list;
+    node.param(rosparam_plcaddrs, list, list);
+
+    // tokenize string containing the list of components/senders
+    for (int i = 0; i < list.size(); ++i) {
+
+        // store lists of addresses
         std::vector<int> coils_addr;
         std::vector<int> regs_write_addr;
         std::vector<int> regs_read_addr;
-        // parse coils addresses
-        if (!node.getParam("plc_modbus_node/" + token + "_coils_addr", coils_addr)) {
-            ROS_WARN(token.c_str());
-            ROS_WARN("No coil addrs given!");
-        }
-        // parse reg addresses (write)
-        if (!node.getParam("plc_modbus_node/" + token + "_regs_write_addr", regs_write_addr)) {
-            ROS_WARN(token.c_str());
-            ROS_WARN("No reg write addrs given!");
-        }
-        // parse reg addresses (read-only)
-        if (!node.getParam("plc_modbus_node/" + token + "_regs_read_addr", regs_read_addr)) {
-            ROS_WARN(token.c_str());
-            ROS_WARN("No reg read addrs given!");
-        }
-        // add to map
-        plc_addresses.emplace(token, plc_modbus_addr(coils_addr, regs_write_addr, regs_read_addr));
-        // add to lists
 
+        // parse parameters for the arrays of addresses
+        XmlRpc::XmlRpcValue coils_addr_sublist = list[i]["coils_addr"];
+        ROS_ASSERT(coils_addr_sublist.getType() == XmlRpc::XmlRpcValue::TypeArray);
+        XmlRpc::XmlRpcValue regs_write_addr_sublist = list[i]["regs_write_addr"];
+        ROS_ASSERT(regs_write_addr_sublist.getType() == XmlRpc::XmlRpcValue::TypeArray);
+        XmlRpc::XmlRpcValue regs_read_addr_sublist = list[i]["regs_read_addr"];
+        ROS_ASSERT(regs_read_addr_sublist.getType() == XmlRpc::XmlRpcValue::TypeArray);
+        
+        // add to lists of addresses
+        for (int j = 0; j < coils_addr_sublist.size(); ++j) {
+            coils_addr.push_back(coils_addr_sublist[j]);
+        }
+        for (int j = 0; j < regs_write_addr_sublist.size(); ++j) {
+            regs_write_addr.push_back(regs_write_addr_sublist[j]);
+        }
+        for (int j = 0; j < regs_read_addr_sublist.size(); ++j) {
+            regs_read_addr.push_back(regs_read_addr_sublist[j]);
+        }
+
+        // add to map
+        plc_addresses.emplace(list[i]["name"], plc_modbus_addr(coils_addr, regs_write_addr, regs_read_addr));
+        
+        // add to lists
         if (debug_mode) {
-        regs_addrs.insert(regs_addrs.end(), regs_write_addr.begin(), regs_write_addr.end());
-        regs_addrs.insert(regs_addrs.end(), regs_read_addr.begin(), regs_read_addr.end());
-        coils_addrs.insert(coils_addrs.end(), coils_addr.begin(), coils_addr.end());
+            regs_addrs.insert(regs_addrs.end(), regs_write_addr.begin(), regs_write_addr.end());
+            regs_addrs.insert(regs_addrs.end(), regs_read_addr.begin(), regs_read_addr.end());
+            coils_addrs.insert(coils_addrs.end(), coils_addr.begin(), coils_addr.end());
         }
     }
 
@@ -127,10 +132,8 @@ plc_modbus_manager::plc_modbus_manager() {
     coils_write = node.subscribe<plc_modbus_node::ByteArray>("modbus/coils_write", 100,
                                                            &plc_modbus_manager::coils_callBack, this);
 
-    // get parameters for modbus connection
-    node.param<std::string>("plc_modbus_node/ip", ip_address, "192.168.0.100");
-    node.param("plc_modbus_node/port", port, 502);
-    node.param("plc_modbus_node/spin_rate",spin_rate,30);
+    // get parameters for ros
+    node.param("plc_modbus_node/spin_rate",spin_rate, 30);
 
     if (debug_mode) {
         // Create mock PLC coils/registers address map
@@ -138,6 +141,10 @@ plc_modbus_manager::plc_modbus_manager() {
         modbus = new modbus_wrapper(regs_addrs, coils_addrs);
     }
     else {
+        // get parameters for modbus connection
+        node.param<std::string>("plc_modbus_node/ip", ip_address, "192.168.0.100");
+        node.param("plc_modbus_node/port", port, 502);
+
         // Create modbus/tcp connection to PLC
         ROS_INFO("Connecting to modbus device on %s/%d", ip_address.c_str(), port);
         modbus = new modbus_wrapper(ip_address.c_str(), port);
