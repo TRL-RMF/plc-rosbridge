@@ -13,6 +13,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   plc_modbus_node
+  nav_msgs
+  sensor_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -139,6 +142,7 @@ include_directories(
  add_executable(forklift_node src/forklift_node.cpp)
  add_executable(main_node src/main_node.cpp)
  add_executable(xnergy_charging_node src/xnergy_charging_node.cpp)
+ add_executable(driver_modbus_node src/driver_modbus_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -158,6 +162,9 @@ include_directories(
    ${catkin_LIBRARIES}
  )
  target_link_libraries(xnergy_charging_node
+   ${catkin_LIBRARIES}
+ )
+ target_link_libraries(driver_modbus_node
    ${catkin_LIBRARIES}
  )
 
