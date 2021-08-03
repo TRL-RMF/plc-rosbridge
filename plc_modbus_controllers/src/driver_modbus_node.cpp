@@ -405,7 +405,8 @@ void MainNode::odom_publish()
   // return;
   // determine delta time in seconds
   uint32_t nowtime = millis();
-  float dt = (float)DELTAT(nowtime,odom_last_time) / 1000.0;
+  //float dt = (float)DELTAT(nowtime,odom_last_time) / 1000.0;
+  float dt = (float)rb_sensors.time_elapsed;
   odom_last_time = nowtime;
 
 #ifdef _ODOM_DEBUG
