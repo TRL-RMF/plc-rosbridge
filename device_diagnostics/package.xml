@@ -52,6 +52,20 @@
   <build_depend>roscpp</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <exec_depend>roscpp</exec_depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+  <build_depend>diagnostic_msgs</build_depend>
+  <build_export_depend>diagnostic_msgs</build_export_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+
+  <build_depend>sensor_msgs</build_depend>
+  <build_export_depend>sensor_msgs</build_export_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+
+  <build_depend>bond</build_depend>
+  <build_export_depend>bond</build_export_depend>
+  <exec_depend>bond</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
