@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 
     ROS_INFO("Main node is ready");
 
-    ros::Rate loop_rate(1);
+    ros::Rate loop_rate(10);
     while(ros::ok()){
     
         if (!first) {

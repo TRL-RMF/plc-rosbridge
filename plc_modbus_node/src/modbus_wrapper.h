@@ -9,24 +9,30 @@ struct modbus_wrapper {
     modbus_t *plc;
 
     bool debug_mode;
+    bool launch_successful; // whether it launched successfully
 
     // Constructor for mock PLC modbus
-    modbus_wrapper(const std::vector<int>& regs_addrs, const std::vector<int>& coils_addrs) : debug_mode(true), mock(regs_addrs, coils_addrs), plc(0) {}
+    modbus_wrapper(const std::vector<int>& regs_addrs, const std::vector<int>& coils_addrs) : debug_mode(true), mock(regs_addrs, coils_addrs), plc(0),
+        launch_successful(true) {}
 
     // Constructor for actual PLC communication wrapper
     modbus_wrapper(const char *ip_addr, int port) : debug_mode(false), mock(), plc(0) {
+        
         plc = modbus_new_tcp(ip_addr, port);
         if (plc == NULL) {
             ROS_FATAL("Unable to allocate libmodbus context\n");
+            launch_successful = false;
             return;
         }
         if (modbus_connect(plc) == -1) {
             ROS_FATAL("Failed to connect to modbus device!!!");
             ROS_FATAL("%s", modbus_strerror(errno));
             modbus_free(plc);
+            launch_successful = false;
             return;
         } else {
             ROS_INFO("Connection to modbus device established");
+            launch_successful = true;
         }
     }
 

@@ -14,9 +14,6 @@ using plc_modbus_node::roboteq_sensors;
 // cmd_vel subscriber
 //
 
-// Define following to enable cmdvel debug output
-#define _CMDVEL_DEBUG
-
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
@@ -27,7 +24,7 @@ using plc_modbus_node::roboteq_sensors;
 //
 
 // Define following to enable odom debug output
-#define _ODOM_DEBUG
+//#define _ODOM_DEBUG
 
 #define NORMALIZE(_z) atan2(sin(_z), cos(_z))
 
@@ -115,15 +112,6 @@ protected:
   roboteq_sensors rb_sensors;
   uint32_t current_last_time;
 
-  /* old
-  float voltage;
-  float current_right;
-  float current_left;
-  float energy;
-  float temperature;
-  uint32_t current_last_time;
-  */
-
   //
   // odom publisher
   //
@@ -139,8 +127,8 @@ protected:
   // toss out initial encoder readings
   char odom_encoder_toss;
 
-  int32_t odom_encoder_left;
-  int32_t odom_encoder_right;
+  uint32_t odom_encoder_left;
+  uint32_t odom_encoder_right;
   
   int32_t odom_rpm_left, odom_rpm_right;
 
@@ -150,6 +138,14 @@ protected:
   float odom_last_x;
   float odom_last_y;
   float odom_last_yaw;
+
+  // previous encoder readings
+  bool first_odom_reading;
+  uint32_t prev_odom_encoder_left;
+  uint32_t prev_odom_encoder_right;
+
+  int32_t rel_odom_encoder_left;
+  int32_t rel_odom_encoder_right;
 
   uint32_t odom_last_time;
 
@@ -181,6 +177,11 @@ MainNode::MainNode() :
   odom_encoder_toss(5),
   odom_encoder_left(0),
   odom_encoder_right(0),
+  first_odom_reading(true),
+  prev_odom_encoder_left(0),
+  prev_odom_encoder_right(0),
+  rel_odom_encoder_left(0),
+  rel_odom_encoder_right(0),
   odom_x(0.0),
   odom_y(0.0),
   odom_yaw(0.0),
@@ -252,7 +253,7 @@ void MainNode::cmdvel_callback( const geometry_msgs::Twist& twist_msg)
   // wheel speed (m/s)
   float right_speed = twist_msg.linear.x + track_width * twist_msg.angular.z / 2.0;
   float left_speed = twist_msg.linear.x - track_width * twist_msg.angular.z / 2.0;
-  ROS_INFO_STREAM("cmdvel speed right: " << right_speed << " left: " << left_speed);
+  ROS_INFO_STREAM("[ROBOTEQ_DIFF_DRIVER] received cmdvel speed right: " << right_speed << " left: " << left_speed);
 
   int32_t right_cmd;
   int32_t left_cmd;
@@ -262,7 +263,7 @@ void MainNode::cmdvel_callback( const geometry_msgs::Twist& twist_msg)
     // motor power (scale 0-1000)
     int32_t right_power = (float)right_speed / (float)wheel_circumference * 60.0 / max_rpm * 1000.0;
     int32_t left_power = left_speed / wheel_circumference * 60.0 / max_rpm * 1000.0;
-    ROS_INFO_STREAM("cmdvel power right: " << right_power << " left: " << left_power);
+    ROS_INFO_STREAM("[ROBOTEQ_DIFF_DRIVER] --- OPEN LOOP --- power right: " << right_power << " left: " << left_power);
     // right_cmd << "!G 1 " << right_power << "\r";
     // left_cmd << "!G 2 " << left_power << "\r";
     // std::cout << "open-loop: right_cmd: " << right_power << std::endl;
@@ -277,7 +278,7 @@ void MainNode::cmdvel_callback( const geometry_msgs::Twist& twist_msg)
     int32_t right_rpm = right_speed / wheel_circumference * 60.0;
     int32_t left_rpm = left_speed / wheel_circumference * 60.0;
     // std::cout<<"------ closed loop: right rpm: " << right_rpm << " left rpm: " << left_rpm << std::endl;
-    ROS_INFO_STREAM("cmdvel rpm right: " << right_rpm << " left: " << left_rpm);
+    ROS_INFO_STREAM("[ROBOTEQ_DIFF_DRIVER] --- CLOSED LOOP --- rpm right: " << right_rpm << " left: " << left_rpm);
     // right_cmd << "!S 1 " << right_rpm << "\r";
     // left_cmd << "!S 2 " << left_rpm << "\r";
     right_cmd = right_rpm;
@@ -292,6 +293,7 @@ speed_write.data.push_back((left_cmd & 0xFFFF0000)>>16);
 speed_write.data.push_back((left_cmd & 0x0000FFFF));
 speed_write.data.push_back((right_cmd & 0xFFFF0000)>>16);
 speed_write.data.push_back((right_cmd & 0x0000FFFF));
+speed_write.data.push_back(rb_sensors.time_elapsed);
 
 regs_write.publish(speed_write);
 }
@@ -311,6 +313,12 @@ void MainNode::sensor_setup()
 void MainNode::sensor_callback(const roboteq_sensors::ConstPtr& data)
 {
   rb_sensors = *data;
+  if (first_odom_reading) {
+    prev_odom_encoder_right = rb_sensors.encoder_right;
+    prev_odom_encoder_left = rb_sensors.encoder_left;
+    first_odom_reading = false;
+    ROS_INFO_STREAM("FIRST ODOM READ: RIGHT: " << prev_odom_encoder_right << " LEFT: " << prev_odom_encoder_left);
+  }
 }
 
 void MainNode::cmdvel_setup()
@@ -381,11 +389,54 @@ void MainNode::odom_loop()
 {
   uint32_t nowtime = millis();
 
+  if (first_odom_reading) {
+    // first_odom_reading = false;
+    return;
+  }
+
   // get encoder counts from roboteq_sensors
   odom_encoder_right = rb_sensors.encoder_right;
   odom_encoder_left = rb_sensors.encoder_left;
 
+  // TODO: check changes, compute relative encoder counts (overflow handler)
+  if ((odom_encoder_left == prev_odom_encoder_left) && (odom_encoder_right == prev_odom_encoder_right)){
+    // No change, skip function
+    return;
+  }
+
+  // Calculating relative encoder counts
+  int buffer = 200000;
+  if ((prev_odom_encoder_right >= (UINT_MAX - buffer)) && (odom_encoder_right <= buffer))
+  {
+    // crossing upper limit
+    rel_odom_encoder_right = (UINT_MAX - prev_odom_encoder_right) + odom_encoder_right + 1;
+  }
+  else if ((prev_odom_encoder_right <= buffer) && (odom_encoder_right >= (UINT_MAX - buffer)))
+  {
+    // crossing lower limit
+    rel_odom_encoder_right = -(prev_odom_encoder_right + (UINT_MAX - odom_encoder_right) + 1);
+  }
+  else{
+    rel_odom_encoder_right = odom_encoder_right - prev_odom_encoder_right;
+  }
+
+  if ((prev_odom_encoder_left >= (UINT_MAX - buffer)) && (odom_encoder_left <= buffer))
+  {
+    // crossing upper limit
+    rel_odom_encoder_left = (UINT_MAX - prev_odom_encoder_left) + odom_encoder_left + 1;
+  }
+  else if ((prev_odom_encoder_left <= buffer) && (odom_encoder_left >= (UINT_MAX - buffer)))
+  {
+    // crossing lower limit
+    rel_odom_encoder_left = -(prev_odom_encoder_left + (UINT_MAX - odom_encoder_left) + 1);
+  }
+  else{
+    rel_odom_encoder_left = odom_encoder_left - prev_odom_encoder_left;
+  }
+
   odom_publish();
+  prev_odom_encoder_left = odom_encoder_left;
+  prev_odom_encoder_right = odom_encoder_right;
 }
 
 //void MainNode::odom_hs_run()
@@ -406,7 +457,7 @@ void MainNode::odom_publish()
   // determine delta time in seconds
   uint32_t nowtime = millis();
   //float dt = (float)DELTAT(nowtime,odom_last_time) / 1000.0;
-  float dt = (float)rb_sensors.time_elapsed;
+  float dt = (float)rb_sensors.time_elapsed /1000.0;
   odom_last_time = nowtime;
 
 #ifdef _ODOM_DEBUG
@@ -421,19 +472,19 @@ ROS_DEBUG("");
 */
 #endif
 
-#ifdef _ODOM_USE_RPM
-  float linear = (((float)odom_rpm_right / (float)60.0f) * wheel_circumference
-      + ((float)odom_rpm_left / 60.0f) * wheel_circumference) * dt / 2.0;
-//  float angular = ((float)odom_encoder_right / (float)encoder_cpr * wheel_circumference - (float)odom_encoder_left / (float)encoder_cpr * wheel_circumference) / track_width * -1.0;
-  float angular = (((float)odom_rpm_right / (float)60.0f) * wheel_circumference 
-      - ((float)odom_rpm_left / 60.0f) * wheel_circumference) *dt / track_width;
-#else
-  ROS_INFO_STREAM("use encoder count");
+// #ifdef _ODOM_USE_RPM
+//   float linear = (((float)odom_rpm_right / (float)60.0f) * wheel_circumference
+//       + ((float)odom_rpm_left / 60.0f) * wheel_circumference) * dt / 2.0;
+// //  float angular = ((float)odom_encoder_right / (float)encoder_cpr * wheel_circumference - (float)odom_encoder_left / (float)encoder_cpr * wheel_circumference) / track_width * -1.0;
+//   float angular = (((float)odom_rpm_right / (float)60.0f) * wheel_circumference 
+//       - ((float)odom_rpm_left / 60.0f) * wheel_circumference) *dt / track_width;
+// #else
+  ROS_DEBUG_STREAM("use encoder count");
   // determine deltas of distance and angle
-  float linear = ((float)odom_encoder_right / (float)encoder_cpr * wheel_circumference + (float)odom_encoder_left / (float)encoder_cpr * wheel_circumference) / 2.0;
+  float linear = ((float)rel_odom_encoder_right / (float)encoder_cpr * wheel_circumference + (float)rel_odom_encoder_left / (float)encoder_cpr * wheel_circumference) / 2.0;
   // float angular = ((float)odom_encoder_right / (float)encoder_cpr * wheel_circumference - (float)odom_encoder_left / (float)encoder_cpr * wheel_circumference) / track_width * -1.0;
-  float angular = ((float)odom_encoder_right / (float)encoder_cpr * wheel_circumference - (float)odom_encoder_left / (float)encoder_cpr * wheel_circumference) / track_width;
-#endif
+  float angular = ((float)rel_odom_encoder_right / (float)encoder_cpr * wheel_circumference - (float)rel_odom_encoder_left / (float)encoder_cpr * wheel_circumference) / track_width;
+// #endif
 
   // Update odometry
   odom_x += linear * cos(odom_yaw);        // m
@@ -441,6 +492,7 @@ ROS_DEBUG("");
   odom_yaw = NORMALIZE(odom_yaw + angular);  // rad
 #ifdef _ODOM_DEBUG
   ROS_INFO_STREAM( "linear: " << linear << " angular: " << angular);
+  ROS_INFO_STREAM( "rel_odom_encoder_right: " << (float)rel_odom_encoder_right << " left: " << (float)rel_odom_encoder_left);
   ROS_INFO_STREAM( "odom x: " << odom_x << " y: " << odom_y << " yaw: " << odom_yaw);
 #endif
 
@@ -500,9 +552,9 @@ int MainNode::run()
   // mstimer = starttime;
   // lstimer = starttime;
 
-//  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(80);
 
-  ROS_INFO("Beginning looping...");
+  ROS_INFO("RoboteQ driver node is ready");
 	
   while (ros::ok())
   {
@@ -541,7 +593,7 @@ int MainNode::run()
 
     ros::spinOnce();
 
-//    loop_rate.sleep();
+    loop_rate.sleep();
   }
 	
 

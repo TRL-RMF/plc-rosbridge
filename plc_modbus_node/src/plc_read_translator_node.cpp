@@ -18,12 +18,16 @@ plc_modbus_node::forklift_sensors fl_sensors;
 plc_modbus_node::xnergy_sensors xn_sensors;
 plc_modbus_node::main_controller main_controller;
 
+bool regs_first_reading(true);
+bool coils_first_reading(true);
+
 //Initialising regs/coils variables for the required type needed
 // Main
 bool heartbeat(0), estop_status(0);
 
 // RoboteQ
-int32_t speed_left(0), speed_right(0), encoder_left(0), encoder_right(0);
+int32_t speed_left(0), speed_right(0);
+uint32_t encoder_left(0), encoder_right(0);
 float amps_left(0), amps_right(0), volts_batt(0);
 std::string fault_flag("");
 uint16_t refresh_rate(0), time_elapsed(0);
@@ -43,17 +47,17 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
   for (int i = 0; i < regs_data->arrays.size(); ++i) {
     // RoboteQ
     if (regs_data->arrays[i].name.compare("roboteq") == 0) {
-      speed_left = (((uint16_t)regs_data->arrays[i].data.at(1) << 16)| (uint16_t)regs_data->arrays[i].data.at(0));
-      speed_right = (((uint16_t)regs_data->arrays[i].data.at(3) << 16)| (uint16_t)regs_data->arrays[i].data.at(2));
-      encoder_left = (((uint16_t)regs_data->arrays[i].data.at(5) << 16)| (uint16_t)regs_data->arrays[i].data.at(4));
-      encoder_right = (((uint16_t)regs_data->arrays[i].data.at(7) << 16)| (uint16_t)regs_data->arrays[i].data.at(6));
-      amps_left = (float)regs_data->arrays[i].data.at(8) / 10.0f;
-      amps_right = (float)regs_data->arrays[i].data.at(9) / 10.0f;
-      volts_batt = (float)regs_data->arrays[i].data.at(10) / 10.0f;
-      int fault_flags = regs_data->arrays[i].data.at(11);
+      speed_left = (((uint16_t)regs_data->arrays[i].data.at(0) << 16)| (uint16_t)regs_data->arrays[i].data.at(1));
+      speed_right = (((uint16_t)regs_data->arrays[i].data.at(2) << 16)| (uint16_t)regs_data->arrays[i].data.at(3));
+      time_elapsed = regs_data->arrays[i].data.at(4);
+      encoder_left = (((uint16_t)regs_data->arrays[i].data.at(5) << 16)| (uint16_t)regs_data->arrays[i].data.at(6));
+      encoder_right = (((uint16_t)regs_data->arrays[i].data.at(7) << 16)| (uint16_t)regs_data->arrays[i].data.at(8));
+      // amps_left = (float)regs_data->arrays[i].data.at(9) / 10.0f;
+      // amps_right = (float)regs_data->arrays[i].data.at(10) / 10.0f;
+      // volts_batt = (float)regs_data->arrays[i].data.at(11) / 10.0f;
+      int fault_flags = regs_data->arrays[i].data.at(9);
       fault_flag = std::bitset<16>(fault_flags).to_string();
-      refresh_rate = regs_data->arrays[i].data.at(14);
-      time_elapsed = regs_data->arrays[i].data.at(15);
+      refresh_rate = regs_data->arrays[i].data.at(10);
     }
     // Forklift
     else if (regs_data->arrays[i].name.compare("forklift") == 0) {
@@ -75,6 +79,8 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
 
     }
   }
+
+  regs_first_reading = false;
 }
 
 void coil_clbk(const plc_modbus_node::MultiByteArray::ConstPtr &coils_data) {
@@ -92,7 +98,8 @@ void coil_clbk(const plc_modbus_node::MultiByteArray::ConstPtr &coils_data) {
       busy_status = (coils_data->arrays[i].data.at(2))!=0;
     }
   }
-   
+
+  coils_first_reading = false;
 }
 
 void initialiseMessage(){
@@ -150,16 +157,18 @@ int main(int argc, char **argv)
   ros::Publisher pub_xnergy_sensors = n.advertise<plc_modbus_node::xnergy_sensors>("/modbus/xnergy_sensors", 100);
   ros::Publisher pub_main_controller = n.advertise<plc_modbus_node::main_controller>("/modbus/main_controller", 100);
   
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(30);
 
   while(ros::ok()){
     
-    initialiseMessage(); //function to assign the respective values for each message
+    if (!regs_first_reading && !coils_first_reading) {
+      initialiseMessage(); //function to assign the respective values for each message
       
-    pub_roboteq_sensors.publish(rob_sensors);
-    pub_forklift_sensors.publish(fl_sensors);
-    pub_xnergy_sensors.publish(xn_sensors);
-    pub_main_controller.publish(main_controller);
+      pub_roboteq_sensors.publish(rob_sensors);
+      pub_forklift_sensors.publish(fl_sensors);
+      pub_xnergy_sensors.publish(xn_sensors);
+      pub_main_controller.publish(main_controller);
+    }
 
     ros::spinOnce();
     loop_rate.sleep();

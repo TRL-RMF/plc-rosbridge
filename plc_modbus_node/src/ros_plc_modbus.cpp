@@ -80,11 +80,12 @@ plc_modbus_manager::plc_modbus_manager() {
     ROS_INFO("Debug mode: %s", debug_mode ? "true" : "false");
 
     // parse name of addresses list parameter from the yaml file
-    std::string rosparam_plcaddrs;  // name of the rosparam for plc addresses loaded from yaml file
-    node.param<std::string>("plc_modbus_node/addr_param_name", rosparam_plcaddrs, "plc_modbus_node/plc_addrs");
+    //std::string rosparam_plcaddrs;  // name of the rosparam for plc addresses loaded from yaml file
+    //node.param<std::string>("plc_modbus_node/addr_param_name", rosparam_plcaddrs, "plc_modbus_node/plc_addrs");
     // parse the list of addresses of the components/senders that will communicate with the PLC
     XmlRpc::XmlRpcValue list;
-    node.param(rosparam_plcaddrs, list, list);
+    //node.param(rosparam_plcaddrs, list, list);
+    node.param("plc_modbus_node/plc_addrs", list, list);
 
     // tokenize string containing the list of components/senders
     for (int i = 0; i < list.size(); ++i) {
@@ -133,7 +134,7 @@ plc_modbus_manager::plc_modbus_manager() {
                                                            &plc_modbus_manager::coils_callBack, this);
 
     // get parameters for ros
-    node.param("plc_modbus_node/spin_rate",spin_rate, 30);
+    node.param("plc_modbus_node/spin_rate",spin_rate, 50);
 
     if (debug_mode) {
         // Create mock PLC coils/registers address map
@@ -148,6 +149,11 @@ plc_modbus_manager::plc_modbus_manager() {
         // Create modbus/tcp connection to PLC
         ROS_INFO("Connecting to modbus device on %s/%d", ip_address.c_str(), port);
         modbus = new modbus_wrapper(ip_address.c_str(), port);
+
+        if (!modbus->launch_successful) {
+            ROS_FATAL("Exiting program.");
+            return;
+        }
     }
 
     // keep looping to prevent ros node from exiting

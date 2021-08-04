@@ -1,26 +1,46 @@
 # reference: https://answers.ros.org/question/291660/get-yaml-list-of-dictionary-items-with-rosparam-in-c/
+
 plc_addrs:
+# Forklift: commands and readings for control
+# Coils
+# (32784): Mount Status (read-only)
+# (32785): Alignment Status (read-only)
+# (32786): Arm Busy Status (read-only)
+# Registers
+# (32784): Lift Motor Command (read/write)
+# (32785): IR Command (read/write)
+# (32786): IR Distance Left (read-only)
+# (32787): IR Distance Right (read-only)
+# (32788, 32789): Angle (read-only)
 - name: forklift
   coils_addr: [32784, 32785, 32786]
   regs_read_addr: [32786, 32787, 32788, 32789]
   regs_write_addr: [32784, 32785]
 
+# Main: for general/robot core
+# (32816): Heartbeat (read/write)
+# (32768): EStop Status (read-only)
 - name: main
   coils_addr: [32816, 32768]
   regs_read_addr: []
   regs_write_addr: []
 
+# RoboteQ: addr starts from 32768
+# (32768,32769): Speed Left (read/write)
+# (32770,32771): Speed Right (read/write)
+# (32783): Time Since Last Command (read/write)
+# (32772,32773): Absolute Encoder Left (read-only)
+# (32774,32775): Absolute Encoder Right (read-only)
+# (32779): Fault Flag (read-only)
+# (32782): Refresh Rate (read-only)
 - name: roboteq
   coils_addr: []
-  regs_read_addr: [32772, 32773, 32774, 32775, 32776, 32777, 32778, 32779, 32780, 32781, 32782, 32783]
-  regs_write_addr: [32768, 32769, 32770, 32771]
+  regs_read_addr: [32772, 32773, 32774, 32775, 32779, 32782]
+  regs_write_addr: [32768, 32769, 32770, 32771, 32783]
 
+# Xnergy: 
+#
 - name: xnergy
   coils_addr: [32800, 32801, 32802]
   regs_read_addr: [32800, 32801, 32802, 32803, 32804, 32805, 32806]
   regs_write_addr: []
-
-
-# RoboteQ: addr starts from 32768
-# (32768,32769): speed left, (32770,32771): speed right,  (32772,32773): Encoder left,(32774,32775): Encoder right, (32777): Amps left, (32779): Amps right, (32781): Volts battery
-

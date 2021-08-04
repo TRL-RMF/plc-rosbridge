@@ -1,7 +1,7 @@
 int32 speed_left
 int32 speed_right
-int32 encoder_left
-int32 encoder_right
+uint32 encoder_left
+uint32 encoder_right
 float32 amps_left 
 float32 amps_right
 float32 volts_batt
