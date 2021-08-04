@@ -301,6 +301,8 @@ speed_write.data.push_back((right_cmd & 0x0000FFFF));
 speed_write.data.push_back(rb_sensors.time_elapsed);
 
 regs_write.publish(speed_write);
+
+prev_cmdvel = twist_msg;
 }
 
 void MainNode::regs_write_setup()
@@ -329,7 +331,7 @@ void MainNode::sensor_callback(const roboteq_sensors::ConstPtr& data)
 void MainNode::cmdvel_setup()
 {
   ROS_INFO_STREAM("Subscribing to topic " << cmdvel_topic);
-  cmdvel_sub = nh.subscribe(cmdvel_topic, 1000, &MainNode::cmdvel_callback, this);
+  cmdvel_sub = nh.subscribe(cmdvel_topic, 1, &MainNode::cmdvel_callback, this);
 }
 
 // void MainNode::cmdvel_loop()
