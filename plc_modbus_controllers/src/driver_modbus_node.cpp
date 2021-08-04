@@ -149,6 +149,9 @@ protected:
 
   uint32_t odom_last_time;
 
+  // previous twist msg
+  geometry_msgs::Twist prev_cmdvel;
+
   // settings
   bool pub_odom_tf;
   std::string odom_frame;
@@ -249,7 +252,9 @@ MainNode::MainNode() :
 
 void MainNode::cmdvel_callback( const geometry_msgs::Twist& twist_msg)
 {
-
+  if (twist_msg == prev_cmdvel) {
+    return;
+  }
   // wheel speed (m/s)
   float right_speed = twist_msg.linear.x + track_width * twist_msg.angular.z / 2.0;
   float left_speed = twist_msg.linear.x - track_width * twist_msg.angular.z / 2.0;
