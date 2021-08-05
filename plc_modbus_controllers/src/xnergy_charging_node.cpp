@@ -23,8 +23,8 @@ bool start_charging(std_srvs::Empty::Request& request, std_srvs::Empty::Response
         plc_modbus_node::ByteArray data;
         // initialising data variable with something
         data.name = "xnergy";
-        data.data.push_back(xnergy_sensors::toggle); // On toggle to switch state
         data.data.push_back(xnergy_sensors::START_CHARGE); // Start charge
+        data.data.push_back(xnergy_sensors::toggle); // On toggle to switch state
         coils_write.publish(data);
         ROS_INFO("CAUTION!!! Battery is being charged");
     }
@@ -36,8 +36,8 @@ bool stop_charging(std_srvs::Empty::Request& request, std_srvs::Empty::Response&
 {
     plc_modbus_node::ByteArray data;
     data.name = "xnergy";
-    data.data.push_back(xnergy_sensors::toggle); // On toggle to switch state
     data.data.push_back(xnergy_sensors::STOP_CHARGE); // Stop charge
+    data.data.push_back(xnergy_sensors::toggle); // On toggle to switch state
     coils_write.publish(data);
     ROS_INFO("Battery is not charging");
     return true;

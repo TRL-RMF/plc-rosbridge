@@ -99,8 +99,8 @@ void coil_clbk(const plc_modbus_node::MultiByteArray::ConstPtr &coils_data) {
       busy_status = (coils_data->arrays[i].data.at(2))!=0;
     }
     else if (coils_data->arrays[i].name.compare("xnergy") == 0) {
-      toggle_state = (coils_data->arrays[i].data.at(0))!=0;
-      charge_state = (coils_data->arrays[i].data.at(1))!=0;
+      charge_state = (coils_data->arrays[i].data.at(0))!=0;
+      toggle_state = (coils_data->arrays[i].data.at(1))!=0;
     }
   }
 
