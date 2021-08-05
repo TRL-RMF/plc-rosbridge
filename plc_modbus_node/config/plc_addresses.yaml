@@ -41,6 +41,8 @@ plc_addrs:
 # Xnergy: 
 #
 - name: xnergy
-  coils_addr: [32800, 32801, 32802]
+  # coils_addr: [32800, 32801, 32802]
+  coils_addr: [32800, 32801]
+
   regs_read_addr: [32800, 32801, 32802, 32803, 32804, 32805, 32806]
   regs_write_addr: []

@@ -38,8 +38,9 @@ uint16_t lift_cmd(0), ir_cmd(0), ir_dist_left(0), ir_dist_right(0);
 bool mount_status(0), alignment(0), busy_status(0);
 
 // xnergy
-uint16_t xnergy_runtime_voltage(0), xnergy_runtime_current(0), rcu_temp(0), batt_output_current(0);
-uint16_t battery_volt(0), error_code(0);
+uint16_t  rcu_temp(0), error_code(0);
+float xnergy_runtime_voltage(0), xnergy_runtime_current(0), batt_output_current(0), battery_volt(0);
+bool toggle_state(0), charge_state(0);
 
 void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
   // NOTE: regs_data has uint16_t datatype, some need conversion into respective datatypes
@@ -70,11 +71,11 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
       memcpy(&angle, &angle_temp, sizeof(float));
     }
     else if (regs_data->arrays[i].name.compare("xnergy") == 0) {
-      xnergy_runtime_voltage = regs_data->arrays[i].data.at(0);
-      xnergy_runtime_current = regs_data->arrays[i].data.at(1);
+      xnergy_runtime_voltage = (float)regs_data->arrays[i].data.at(0) /128.0;
+      xnergy_runtime_current = (float)regs_data->arrays[i].data.at(1) /128.0;
       rcu_temp = regs_data->arrays[i].data.at(2);
-      batt_output_current = regs_data->arrays[i].data.at(3);
-      battery_volt = regs_data->arrays[i].data.at(4);
+      batt_output_current = (float)regs_data->arrays[i].data.at(3) /128.0;
+      battery_volt = (float)regs_data->arrays[i].data.at(4) /128.0;
       error_code = (((uint16_t)regs_data->arrays[i].data.at(6) << 16)| (uint16_t)regs_data->arrays[i].data.at(5));
 
     }
@@ -96,6 +97,10 @@ void coil_clbk(const plc_modbus_node::MultiByteArray::ConstPtr &coils_data) {
       mount_status = (coils_data->arrays[i].data.at(0))!=0;
       alignment = (coils_data->arrays[i].data.at(1))!=0;
       busy_status = (coils_data->arrays[i].data.at(2))!=0;
+    }
+    else if (coils_data->arrays[i].name.compare("xnergy") == 0) {
+      toggle_state = (coils_data->arrays[i].data.at(0))!=0;
+      charge_state = (coils_data->arrays[i].data.at(1))!=0;
     }
   }
 
@@ -137,7 +142,8 @@ void initialiseMessage(){
   xn_sensors.batt_output_current = batt_output_current ;
   xn_sensors.battery_volt = battery_volt ;
   xn_sensors.error_code = error_code ;
-             
+  xn_sensors.toggle_state = toggle_state;
+  xn_sensors.charge_state = charge_state;            
 }
 
 
