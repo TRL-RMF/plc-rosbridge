@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     pub_main_controller = nh.advertise<plc_modbus_node::ByteArray>("modbus/coils_write", 100);
     // Software E-Stop Service
     ros::ServiceServer service_act_estop = nh.advertiseService("main_controller/trigger_estop", activate_estop);
-    ros::ServiceServer service_deact_estop = nh.advertiseService("main_controller/trigger_estop", deactivate_estop);
+    ros::ServiceServer service_deact_estop = nh.advertiseService("main_controller/deactivate_estop", deactivate_estop);
     byteData.name = "main";
 
     ROS_INFO("Main node is ready");

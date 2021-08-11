@@ -3,8 +3,8 @@
 // and xnergy node
 
 #include <ros/ros.h>
-#include <plc_modbus_node/MultiUInt16Array.h>
-#include <plc_modbus_node/MultiByteArray.h>
+#include "plc_modbus_node/MultiUInt16Array.h"
+#include "plc_modbus_node/MultiByteArray.h"
 #include <modbus/modbus.h>
 #include "plc_modbus_node/roboteq_sensors.h"
 #include "plc_modbus_node/forklift_sensors.h"
@@ -161,17 +161,17 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "read_translator_node");
 
-  ros::NodeHandle n;
+  ros::NodeHandle n("/");
   
   // Subscribe to the respective topics
   ros::Subscriber sub_reg = n.subscribe("modbus/regs_read", 100, reg_clbk);
   ros::Subscriber sub_coil = n.subscribe("modbus/coils_read", 100, coil_clbk);
   
   // Publish to the respective topics
-  ros::Publisher pub_roboteq_sensors = n.advertise<plc_modbus_node::roboteq_sensors>("/modbus/roboteq_sensors", 100);
-  ros::Publisher pub_forklift_sensors = n.advertise<plc_modbus_node::forklift_sensors>("/modbus/forklift_sensors", 100);
-  ros::Publisher pub_xnergy_sensors = n.advertise<plc_modbus_node::xnergy_sensors>("/modbus/xnergy_sensors", 100);
-  ros::Publisher pub_main_controller = n.advertise<plc_modbus_node::main_controller>("/modbus/main_controller", 100);
+  ros::Publisher pub_roboteq_sensors = n.advertise<plc_modbus_node::roboteq_sensors>("modbus/roboteq_sensors", 100);
+  ros::Publisher pub_forklift_sensors = n.advertise<plc_modbus_node::forklift_sensors>("modbus/forklift_sensors", 100);
+  ros::Publisher pub_xnergy_sensors = n.advertise<plc_modbus_node::xnergy_sensors>("modbus/xnergy_sensors", 100);
+  ros::Publisher pub_main_controller = n.advertise<plc_modbus_node::main_controller>("modbus/main_controller", 100);
   
   ros::Rate loop_rate(30);
 
