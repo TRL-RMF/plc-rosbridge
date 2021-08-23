@@ -126,6 +126,9 @@ void execute(const plc_modbus_controllers::MoveForkliftGoalConstPtr& goal, Serve
     data.data.push_back(forklift_sensors::CMD_NO_IR); // IR Command
     regs_write.publish(data);
 
+    // Wait a bit for the sensor readings to update
+    ros::Duration(0.5).sleep();
+
     while (fl_sensors.busy_status) {  // still executing the action
         actionFeedback_.busy_status = fl_sensors.busy_status;
         as->publishFeedback(actionFeedback_);

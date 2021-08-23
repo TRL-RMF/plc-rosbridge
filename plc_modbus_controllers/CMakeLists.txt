@@ -149,6 +149,8 @@ include_directories(
  add_executable(driver_modbus_node src/driver_modbus_node.cpp)
  add_executable(test_encoder_node src/test_encoder_node.cpp)
 
+ add_executable(forklift_actionclient src/forklift_actionclient.cpp)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -161,6 +163,9 @@ include_directories(
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(forklift_node
+   ${catkin_LIBRARIES}
+ )
+ target_link_libraries(forklift_actionclient
    ${catkin_LIBRARIES}
  )
  target_link_libraries(main_node
