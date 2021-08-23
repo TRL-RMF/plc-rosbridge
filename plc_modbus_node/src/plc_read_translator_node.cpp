@@ -81,8 +81,7 @@ void reg_clbk(const plc_modbus_node::MultiUInt16Array::ConstPtr& regs_data) {
       error_code = (((uint16_t)regs_data->arrays[i].data.at(6) << 16)| (uint16_t)regs_data->arrays[i].data.at(5));
     }
     else if (regs_data->arrays[i].name.compare("main") == 0) {
-      
-      twentyfour_volt_measure = (float)regs_data->arrays[i].data.at(0)/128;   
+      twentyfour_volt_measure = (float)regs_data->arrays[i].data.at(0)/128;
       nineteen_volt_measure = (float)regs_data->arrays[i].data.at(1)/128;
       twelve_volt_measure = (float)regs_data->arrays[i].data.at(2)/128;
     }
@@ -99,6 +98,7 @@ void coil_clbk(const plc_modbus_node::MultiByteArray::ConstPtr &coils_data) {
     if (coils_data->arrays[i].name.compare("main") == 0) {
       heartbeat = (coils_data->arrays[i].data.at(0))!=0; 
       estop_status = (coils_data->arrays[i].data.at(1))!=0;
+      //estop_status = (coils_data->arrays[i].data.at(2))!=0;
     }
     else if (coils_data->arrays[i].name.compare("forklift") == 0) {
       mount_status = (coils_data->arrays[i].data.at(0))!=0;
@@ -118,7 +118,7 @@ void initialiseMessage(){
 
   // Main
   main_controller.heartbeat                = heartbeat;
-  main_controller.estop_status             = estop_status ;
+  main_controller.estop_status             = estop_status ;  // TODO: update this to electronic & software estop status
   main_controller.twentyfour_volt_measure  = twentyfour_volt_measure;
   main_controller.twentyfour_volt_measure  = twentyfour_volt_measure ;
   main_controller.twentyfour_volt_measure  = twentyfour_volt_measure  ;
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "read_translator_node");
 
-  ros::NodeHandle n("/");
+  ros::NodeHandle n;
   
   // Subscribe to the respective topics
   ros::Subscriber sub_reg = n.subscribe("modbus/regs_read", 100, reg_clbk);
