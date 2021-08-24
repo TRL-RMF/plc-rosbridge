@@ -278,7 +278,7 @@ void plc_modbus_manager::coils_callBack(const plc_modbus_node::ByteArray::ConstP
                     ROS_ERROR("Modbus coil write failed at addr:%d with value:%u", it->second.coils_addr.at(i), coils_data->data.at(i));
                     ROS_ERROR("%s", modbus->strerror());
                 } else {    // written successfully
-                    ROS_INFO("Modbus coil write at addr:%d with value:%u", it->second.coils_addr.at(i), coils_data->data.at(i));
+                    // ROS_INFO("Modbus coil write at addr:%d with value:%u", it->second.coils_addr.at(i), coils_data->data.at(i));
                 }
             }
             break;

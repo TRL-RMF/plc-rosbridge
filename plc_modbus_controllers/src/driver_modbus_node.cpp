@@ -406,10 +406,10 @@ void MainNode::odom_loop()
   odom_encoder_left = rb_sensors.encoder_left;
 
   // TODO: check changes, compute relative encoder counts (overflow handler)
-  if ((odom_encoder_left == prev_odom_encoder_left) && (odom_encoder_right == prev_odom_encoder_right)){
-    // No change, skip function
-    return;
-  }
+  // if ((odom_encoder_left == prev_odom_encoder_left) && (odom_encoder_right == prev_odom_encoder_right)){
+  //   // No change, skip function
+  //   return;
+  // }
 
   // Calculating relative encoder counts
   int buffer = 200000;

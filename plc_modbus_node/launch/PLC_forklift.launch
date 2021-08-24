@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Launch the node for the PLC modbus communication -->
+    <node pkg="plc_modbus_node" type="ros_plc_modbus" name="plc_modbus_node" output="screen">
+        <param name="debug" type="bool" value="false" />
+        <param name="ip" value="192.168.1.5"/>
+        <rosparam command="load" file="$(find plc_modbus_node)/config/forklift_only.yaml" />
+        <!-- <param name="addr_param_name" value="plc_modbus_node/plc_addrs" /> -->
+    </node> 
+    <!-- Launch the translator node from data stream to variables -->
+    <node pkg="plc_modbus_node" type="plc_read_translator_node" name="plc_read_translator_node" output="screen" />
+
+    <!-- Launch the nodes for the PLC components -->
+    <!-- <include file="$(find plc_modbus_controllers)/launch/plc_components.launch" /> -->
+    <node pkg="plc_modbus_controllers" type="forklift_node" name="forklift_node" output="screen"/>
+    <node pkg="plc_modbus_controllers" type="xnergy_charging_node" name="xnergy_charging_node" output="screen"/>
+</launch>

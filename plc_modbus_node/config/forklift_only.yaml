@@ -1,0 +1,24 @@
+# reference: https://answers.ros.org/question/291660/get-yaml-list-of-dictionary-items-with-rosparam-in-c/
+
+plc_addrs:
+# Forklift: commands and readings for control
+# Coils
+# (32784): Mount Status (read-only)
+# (32785): Alignment Status (read-only)
+# (32786): Arm Busy Status (read-only)
+# Registers
+# (32784): Lift Motor Command (read/write)
+# (32785): IR Command (read/write)
+# (32786): IR Distance Left (read-only)
+# (32787): IR Distance Right (read-only)
+# (32788, 32789): Angle (read-only)
+- name: forklift
+  coils_addr: [32784, 32785, 32786]
+  regs_read_addr: [32786, 32787, 32788, 32789]
+  regs_write_addr: [32784, 32785]
+
+- name: xnergy
+  # coils_addr: [32800, 32801, 32802]
+  coils_addr: [32801, 32800]
+  regs_read_addr: [32800, 32801, 32802, 32803, 32804, 32805, 32806]
+  regs_write_addr: []
