@@ -9,19 +9,46 @@
 // Forklift sensor variables
 plc_modbus_node::main_controller main_controller;
 
-ros::Subscriber main_controller_read;
+ros::Subscriber main_controller_read; 
 ros::Publisher pub_main_controller;
 
 // data to publish
 plc_modbus_node::ByteArray byteData;
 
-bool first = true;
+bool first = true;  // flag that data is first available before publishing
+bool set_estop = false;
 
 void main_callback(const plc_modbus_node::main_controller::ConstPtr& data){
     main_controller = *data;
     // ROS_INFO_STREAM(fl_sensors);
 
+    // stop setting e-stop
+    if (set_estop) {
+        if (main_controller.estop_status) {
+            set_estop = false;
+        }
+    }
+
+    // set flag that data is now available
     first = false;
+}
+
+bool activate_estop(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response) {
+    set_estop = true;
+
+    // TODO: Publish estop immediately
+
+    ROS_INFO("Trigger Software E-Stop");
+    return true;
+}
+
+bool deactivate_estop(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response) {
+    set_estop = true;
+
+    // TODO: Publish estop immediately
+
+    ROS_INFO("Trigger Software E-Stop");
+    return true;
 }
 
 int main(int argc, char **argv)
@@ -33,6 +60,9 @@ int main(int argc, char **argv)
     main_controller_read = nh.subscribe<plc_modbus_node::main_controller>("modbus/main_controller", 100, main_callback);
     // publish main controller information
     pub_main_controller = nh.advertise<plc_modbus_node::ByteArray>("modbus/coils_write", 100);
+    // Software E-Stop Service
+    ros::ServiceServer service_act_estop = nh.advertiseService("main_controller/trigger_estop", activate_estop);
+    ros::ServiceServer service_deact_estop = nh.advertiseService("main_controller/deactivate_estop", deactivate_estop);
     byteData.name = "main";
 
     ROS_INFO("Main node is ready");
@@ -43,7 +73,7 @@ int main(int argc, char **argv)
         if (!first) {
             byteData.data.clear();
             byteData.data.push_back(1); // True
-            byteData.data.push_back(main_controller.estop_status);
+            byteData.data.push_back(set_estop ? true : main_controller.estop_status);
             pub_main_controller.publish(byteData);
         }
 

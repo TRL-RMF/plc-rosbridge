@@ -1,0 +1,8 @@
+# Define the goal
+bool move_up  # true to move up, false to move down
+---
+# Define the result
+bool success  # whether the action completed its goal successfully
+---
+# Define a feedback message
+bool busy_status  # the busy status flag
