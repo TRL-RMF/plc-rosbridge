@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 //    bool move_up;
 //    n.getParam("move_up", move_up);
 //    ROS_INFO("Action: Move %s", move_up ? "Up" : "Down");
-    goal.move_up = true;
+    goal.move_up = false;
 
     // send the goal
     ac.sendGoal(goal);

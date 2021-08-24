@@ -88,6 +88,8 @@ bool forklift_ir(std_srvs::Empty::Request& request, std_srvs::Empty::Response& r
 // ROS Action
 void execute(const plc_modbus_controllers::MoveForkliftGoalConstPtr& goal, Server* as)
 {
+ROS_INFO("Goal: %s", goal->move_up ? "Up" : "Down");
+ROS_INFO("%i %i %i", fl_sensors.lift_cmd, fl_sensors.mount_status, fl_sensors.busy_status);
     // Check that the forklift is not currently in action
     if (fl_sensors.lift_cmd != 0 || fl_sensors.busy_status != false){
         // Forklift is completing previous command, don't issue command
@@ -99,7 +101,7 @@ void execute(const plc_modbus_controllers::MoveForkliftGoalConstPtr& goal, Serve
     }
 
     // Check that the goal is valid
-    if (goal->move_up == false && fl_sensors.mount_status == false) {  // goal is to move down
+    if (!goal->move_up && !fl_sensors.mount_status) {  // goal is to move down
         // Forklift is DOWN, don't issue command
         ROS_WARN("FORKLIFT IS DOWN, DOWN COMMAND REJECTED");
 
@@ -107,7 +109,7 @@ void execute(const plc_modbus_controllers::MoveForkliftGoalConstPtr& goal, Serve
         as->setSucceeded(actionResult_);
         return;
     }
-    else if (goal->move_up == true && fl_sensors.mount_status == true) {  // goal is to move up
+    else if (goal->move_up && fl_sensors.mount_status) {  // goal is to move up
         // Forklift is UP, don't issue command
         ROS_WARN("FORKLIFT IS UP, UP COMMAND REJECTED");
 

@@ -150,6 +150,7 @@ include_directories(
  add_executable(test_encoder_node src/test_encoder_node.cpp)
 
  add_executable(forklift_actionclient src/forklift_actionclient.cpp)
+ add_executable(forklift_actionclient_down src/forklift_actionclient_down.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -166,6 +167,9 @@ include_directories(
    ${catkin_LIBRARIES}
  )
  target_link_libraries(forklift_actionclient
+   ${catkin_LIBRARIES}
+ )
+ target_link_libraries(forklift_actionclient_down
    ${catkin_LIBRARIES}
  )
  target_link_libraries(main_node
